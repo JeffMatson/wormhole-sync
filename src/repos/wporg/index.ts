@@ -11,6 +11,10 @@ import { processPluginReleases } from "./plugin-releases";
 async function runPluginTasks(plugin: Plugin) {
   CLI.log(["start"], `Processing ${plugin.slug}...`);
 
+  const result = await syncPluginEssentials(plugin.slug, "DOTORG");
+  CLI.log(["success"], `Synced basic data for ${plugin.slug} plugins.`);
+
+  plugin.id = result.id;
   const tasks = [
     processPluginMeta(plugin),
     processPluginReleases(plugin),
@@ -23,27 +27,8 @@ async function runPluginTasks(plugin: Plugin) {
   return results;
 }
 
-async function syncEssentials(plugins: DotOrgPlugin[]) {
-  const synced = [];
-
-  for (const plugin of plugins) {
-    const result = await syncPluginEssentials(plugin.slug, "DOTORG");
-    synced.push(result);
-    CLI.log(
-      ["success"],
-      `[${synced.length}/${plugins.length}] Synced basic data for ${plugin.slug}.`
-    );
-  }
-
-  return synced;
-}
-
 async function processPlugins(pluginList: DotOrgPlugin[]) {
   CLI.log(["start"], `Processing ${pluginList.length} plugins...`);
-
-  CLI.log(["start"], "Syncing basic plugin data. This may take a while...");
-  const synced = await syncEssentials(pluginList);
-  CLI.log(["success"], `Synced basic data for ${synced.length} plugins.`);
 
   for (const plugin of pluginList) {
     const parsed = transformPlugin(plugin);
