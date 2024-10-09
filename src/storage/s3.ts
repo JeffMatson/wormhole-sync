@@ -71,26 +71,30 @@ class S3StorageProvider implements StorageProvider {
   }
 
   generateResourcePath(resource: ResourceProps) {
-    const { type, subType, slug } = resource;
+    const { source, type, subType, slug } = resource;
 
     const typeDir = this.mapTypeToDir(type);
     const subTypeDir = this.mapSubTypeToDir(subType);
 
-    return `${typeDir}/${slug}/${subTypeDir}`;
+    return `${source}/${typeDir}/${slug}/${subTypeDir}`;
   }
 
   generateKey(resource: ResourceProps, file: FileProps) {
-    const { type, subType, slug } = resource;
+    const { type, subType, slug, source } = resource;
     const fileName = `${file.slug}.${file.ext}`;
 
-    const filePath = this.generateResourcePath({ type, subType, slug });
+    const filePath = this.generateResourcePath({ source, type, subType, slug });
 
     return `${filePath}/${fileName}`;
   }
 
-  generatePluginReleaseKey(pluginSlug: string, version: string) {
+  generatePluginReleaseKey(
+    pluginSlug: string,
+    version: string,
+    source: string
+  ) {
     const key = this.generateKey(
-      { type: "plugin", subType: "release", slug: pluginSlug },
+      { source, type: "plugin", subType: "release", slug: pluginSlug },
       { slug: version, ext: "zip" }
     );
 
