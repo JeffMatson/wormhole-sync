@@ -1,0 +1,135 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Source {
+  GITHUB
+  DOTORG
+  CUSTOM
+  UNKNOWN
+}
+
+model Plugin {
+  id                     Int                 @id @default(autoincrement())
+  source                 Source              @default(UNKNOWN)
+  slug                   String              
+  name                   String?
+  author                 Author?              @relation(fields: [authorId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  authorId               Int?
+  authorProfile          String?
+  tested                 String?
+  requirements           PluginRequirements?
+  homepage               String?
+  description            PluginDescription?
+  tags                   Tag[]
+  donateLink             String?
+  version                String?       
+  versions               PluginVersion[]
+  icons                  PluginIcon[]
+  banners                PluginBanner[]
+  screenshots            PluginScreenshot[]
+  dotOrgStats            DotOrgPluginStats?
+
+  @@unique([source, slug])
+}
+
+model PluginRequirements {
+  id          Int      @id @default(autoincrement())
+  pluginId    Int      @unique
+  plugin      Plugin   @relation(fields: [pluginId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  pluginSlugs String[]
+  phpVersion  String?
+  wpVersion   String?
+}
+
+model PluginDescription {
+  id          Int      @id @default(autoincrement())
+  pluginId    Int      @unique
+  plugin      Plugin   @relation(fields: [pluginId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  full        String?
+  short       String?
+}
+
+model DotOrgPluginStats {
+  id                     Int       @id @default(autoincrement())
+  pluginId               Int       @unique
+  plugin                 Plugin    @relation(fields: [pluginId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  added                  DateTime? @default(now())
+  updated                DateTime?
+  activeInstalls         Int?
+  downloads              Int?
+  rating                 Int?
+  ratingCount            Int?
+  ratingStars1           Int?
+  ratingStars2           Int?
+  ratingStars3           Int?
+  ratingStars4           Int?
+  ratingStars5           Int?
+  supportThreads         Int?
+  supportThreadsResolved Int?
+}
+
+model Author {
+  id               Int      @id @default(autoincrement())
+  name             String
+  plugins          Plugin[]
+  dotOrgProfileUrl String?  @unique
+}
+
+model Tag {
+  slug    String   @id @unique
+  name    String
+  plugins Plugin[]
+}
+
+model PluginVersion {
+  id            Int            @id @default(autoincrement())
+  version       String
+  hash          String?
+  downloadLinks DownloadLink[]
+  added         DateTime?      @default(now())
+  pluginId      Int
+  plugin        Plugin         @relation(fields: [pluginId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+}
+
+model DownloadLink {
+  id        Int           @id @default(autoincrement())
+  versionId Int   
+  version   PluginVersion @relation(fields: [versionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  source    Source        @default(UNKNOWN)
+  url       String
+}
+
+model PluginIcon {
+  id       Int    @id @default(autoincrement())
+  pluginId Int    
+  plugin   Plugin @relation(fields: [pluginId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  source   Source @default(UNKNOWN)
+  slug     String
+  url      String
+}
+
+model PluginBanner {
+  id       Int    @id @default(autoincrement())
+  pluginId Int    
+  plugin   Plugin @relation(fields: [pluginId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  source   Source @default(UNKNOWN)
+  slug     String
+  url      String
+}
+
+model PluginScreenshot {
+  id       Int    @id @default(autoincrement())
+  pluginId Int    
+  plugin   Plugin @relation(fields: [pluginId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  source   Source @default(UNKNOWN)
+  url      String
+  caption  String?
+  slug     String
+}
