@@ -38,6 +38,7 @@ export async function processRelease(plugin: Plugin, version: string) {
   }
 
   const resourceProps = {
+    source: "dotorg",
     type: "plugin",
     subType: "release",
     slug: plugin.slug,
@@ -77,6 +78,7 @@ export async function processRelease(plugin: Plugin, version: string) {
 
   const written = await FileQueue.add(async () => {
     const resourceProps = {
+      source: "dotorg",
       type: "plugin",
       subType: "release",
       slug: plugin.slug,

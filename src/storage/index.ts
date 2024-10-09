@@ -3,6 +3,7 @@ import LocalStorageProvider from "./local";
 import config from "../config";
 
 export interface ResourceProps {
+  source: string;
   type: string;
   subType: string;
   slug: string;
