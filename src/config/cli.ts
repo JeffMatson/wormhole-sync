@@ -2,12 +2,15 @@ import { parseArgs } from "util";
 
 const storageTypes = ["local", "s3"] as const;
 
+// @TODO: fix types.
+// @TODO: Actually... fix the whole damn file.
 interface CliConfig {
   verbose?: boolean;
   syncDb?: boolean;
   syncFiles?: boolean;
   syncVersions?: boolean;
   syncAssets?: boolean;
+  exhaustive?: boolean;
   storage?: (typeof storageTypes)[number];
 }
 
@@ -18,6 +21,9 @@ const { values, positionals } = parseArgs({
       type: "boolean",
     },
     verbose: {
+      type: "boolean",
+    },
+    exhaustive: {
       type: "boolean",
     },
     "no-versions": {
@@ -75,6 +81,7 @@ const { values, positionals } = parseArgs({
 
 const cliConfig: CliConfig = {
   verbose: values.verbose,
+  exhaustive: values.exhaustive,
 };
 
 if (values["no-db"]) {

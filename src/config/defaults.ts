@@ -25,6 +25,7 @@ const defaultConfig: Partial<Config> = {
   syncVersions: true,
   syncAssets: true,
   verbose: false,
+  exhaustive: false,
   storage: "local" as const,
   concurrency: {
     plugins: 1,

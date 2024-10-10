@@ -102,9 +102,43 @@ export async function processRelease(plugin: Plugin, version: string) {
   return written;
 }
 
-export function processPluginReleases(plugin: Plugin) {
-  const processed = [];
+async function checkExistingFiles(plugin: Plugin) {
+  const resourceProps = {
+    source: "dotorg",
+    type: "plugin",
+    subType: "release",
+    slug: plugin.slug,
+  };
 
+  const path = storageProvider.generateResourcePath(resourceProps);
+  const existing = await storageProvider.getFilesInPath(path);
+
+  for (const version in plugin.versions) {
+    const fileProps = {
+      slug: `${plugin.slug}.${version}`,
+      ext: "zip",
+      mime: "application/zip",
+    };
+
+    const fileKey = await storageProvider.generateKey(resourceProps, fileProps);
+    if (!existing.includes(fileKey)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+export async function processPluginReleases(plugin: Plugin) {
+  if (!config.exhaustive) {
+    const allFilesExist = await checkExistingFiles(plugin);
+    if (allFilesExist) {
+      CLI.log(["info"], `All files exist for ${plugin.slug}. Skipping.`);
+      return [];
+    }
+  }
+
+  const processed = [];
   for (const version in plugin.versions) {
     if (!config.syncVersions && version !== plugin.version) {
       continue;
@@ -113,5 +147,7 @@ export function processPluginReleases(plugin: Plugin) {
     processed.push(processRelease(plugin, version));
   }
 
-  return Promise.allSettled(processed);
+  const results = await Promise.allSettled(processed);
+
+  return results;
 }

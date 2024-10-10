@@ -50,6 +50,7 @@ const EnvSchema = z
     S3_BUCKET: EnvStringSchema,
     S3_ENDPOINT: EnvStringSchema,
     S3_REGION: EnvStringSchema,
+    EXHAUSTIVE: EnvBooleanSchema,
   })
   .partial();
 
@@ -61,6 +62,7 @@ const envConfig = {
   syncVersions: envValues.SYNC_VERSIONS,
   syncAssets: envValues.SYNC_ASSETS,
   verbose: envValues.VERBOSE,
+  exhaustive: envValues.EXHAUSTIVE,
   storage: envValues.STORAGE as Config["storage"],
   concurrency: {
     plugins: envValues.CONCURRENT_PLUGINS,
