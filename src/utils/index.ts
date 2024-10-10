@@ -50,10 +50,7 @@ export function getFileHash(
   return hasher.digest("hex");
 }
 
-export async function checkRelease(
-  buffer: Uint8Array,
-  options: ReleaseCheckOptions
-) {
+export function checkRelease(buffer: Uint8Array, options: ReleaseCheckOptions) {
   const results: {
     md5?: string;
     sha1?: string;
@@ -71,4 +68,6 @@ export async function checkRelease(
   if (options.sha256) {
     results.sha256 = getFileHash(buffer, "sha256");
   }
+
+  return results;
 }
