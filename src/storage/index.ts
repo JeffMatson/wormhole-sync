@@ -1,5 +1,6 @@
 import S3StorageProvider from "./s3";
 import LocalStorageProvider from "./local";
+import B2StorageProvider from "./b2";
 import config from "../config";
 
 export interface ResourceProps {
@@ -41,6 +42,8 @@ export function getStorageProvider() {
   switch (providerType) {
     case "s3":
       return new S3StorageProvider(storageConfig);
+    case "b2":
+      return new B2StorageProvider(storageConfig);
     case "local":
       return new LocalStorageProvider(storageConfig);
     default:
