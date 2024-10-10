@@ -141,82 +141,23 @@ class S3StorageProvider implements StorageProvider {
     return await this.uploadFile(key, payload, { mime: file.mime });
   }
 
-  // async savePluginIcon(
-  //   payload: Uint8Array,
-  //   props: { type: string; pluginSlug: string },
-  //   force = false
-  // ) {
-  //   const fileInfo = await getImageType(payload);
-  //   if (!fileInfo) {
-  //     throw new Error("Invalid image type");
-  //   }
+  async getFilesInPath(path: string) {
+    try {
+      const response = await this.client.send(
+        new ListObjectsV2Command({
+          Bucket: runtimeConfig.s3.bucket,
+          Prefix: path,
+        })
+      );
 
-  //   const key = this.generateKey(
-  //     { type: "plugin", subType: "icon", slug: props.pluginSlug },
-  //     { slug: props.type, ext: fileInfo.ext }
-  //   );
+      const files = response.Contents?.map((file) => file.Key) || [];
 
-  //   if (!force) {
-  //     const exists = await this.fileExists(key);
-  //     if (exists) {
-  //       return;
-  //     }
-  //   }
-
-  //   return this.uploadFile(
-  //     {
-  //       type: props.type,
-  //       pluginSlug: props.pluginSlug,
-  //       key: key,
-  //       mime: fileInfo.mime,
-  //     },
-  //     payload
-  //   );
-  // }
-
-  // async savePluginBanner(
-  //   payload: Uint8Array,
-  //   props: { size: string; pluginSlug: string },
-  //   force = false
-  // ) {
-  //   const fileInfo = await getImageType(payload);
-  //   if (!fileInfo) {
-  //     throw new Error("Invalid image type");
-  //   }
-
-  //   const key = `${this.assetPath}/plugins/${props.pluginSlug}/banner-${props.size}.${fileInfo.ext}`;
-
-  //   if (!force) {
-  //     const exists = await this.fileExists(key);
-  //     if (exists) {
-  //       return;
-  //     }
-  //   }
-
-  //   return this.uploadFile(key, payload, { mime: fileInfo.mime });
-  // }
-
-  // async savePluginScreenshot(
-  //   payload: Uint8Array,
-  //   props: { slug: string; pluginSlug: string },
-  //   force = false
-  // ) {
-  //   const fileInfo = await getImageType(payload);
-  //   if (!fileInfo) {
-  //     throw new Error("Invalid image type");
-  //   }
-
-  //   const key = `${this.assetPath}/plugins/${props.pluginSlug}/screenshot-${props.slug}.${fileInfo.ext}`;
-
-  //   if (!force) {
-  //     const exists = await this.fileExists(key);
-  //     if (exists) {
-  //       return;
-  //     }
-  //   }
-
-  //   return this.uploadFile(key, payload, { mime: fileInfo.mime });
-  // }
+      return files;
+    } catch (err: any) {
+      console.error("Error: ", err);
+      throw err;
+    }
+  }
 
   async fileExists(key: string) {
     try {

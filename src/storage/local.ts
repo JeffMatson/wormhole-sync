@@ -12,6 +12,11 @@ class LocalStorageProvider implements StorageProvider {
     // Not implemented
   }
 
+  generateResourcePath(resource: ResourceProps) {
+    return "";
+    // Not implemented
+  }
+
   async generateKey(resource: ResourceProps, file: FileProps) {
     return "";
     // Not implemented
@@ -63,6 +68,11 @@ class LocalStorageProvider implements StorageProvider {
     }
 
     return errors;
+  }
+
+  async getFilesInPath(path: string) {
+    return [];
+    // Not implemented
   }
 }
 
