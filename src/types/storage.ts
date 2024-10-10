@@ -16,3 +16,18 @@ export const StorageConfigSchema = z.union([
   }),
 ]);
 export type StorageConfig = z.infer<typeof StorageConfigSchema>;
+
+export const StorageResourceInfoSchema = z.object({
+  source: z.string(),
+  type: z.string(),
+  subType: z.string(),
+  slug: z.string(),
+});
+export type StorageResourceInfo = z.infer<typeof StorageResourceInfoSchema>;
+
+export const StorageFileInfoSchema = z.object({
+  slug: z.string(),
+  ext: z.string(),
+  mime: z.string().optional(),
+});
+export type StorageFileInfo = z.infer<typeof StorageFileInfoSchema>;

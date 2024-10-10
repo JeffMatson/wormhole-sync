@@ -3,19 +3,6 @@ import LocalStorageProvider from "./local";
 import B2StorageProvider from "./b2";
 import config from "../config";
 
-export interface ResourceProps {
-  source: string;
-  type: string;
-  subType: string;
-  slug: string;
-}
-
-export interface FileProps {
-  slug: string;
-  ext: string;
-  mime?: string;
-}
-
 function getStorageConfig(storageType: string) {
   switch (storageType) {
     case "s3":

@@ -1,4 +1,4 @@
-import type { FileProps, ResourceProps } from ".";
+import type { StorageFileInfo, StorageResourceInfo } from "~/types/storage";
 import StorageProvider from "./storage-provider";
 
 class LocalStorageProvider implements StorageProvider {
@@ -12,12 +12,12 @@ class LocalStorageProvider implements StorageProvider {
     // Not implemented
   }
 
-  generateResourcePath(resource: ResourceProps) {
+  generateResourcePath(resource: StorageResourceInfo) {
     return "";
     // Not implemented
   }
 
-  async generateKey(resource: ResourceProps, file: FileProps) {
+  async generateKey(resource: StorageResourceInfo, file: StorageFileInfo) {
     return "";
     // Not implemented
   }
@@ -27,8 +27,8 @@ class LocalStorageProvider implements StorageProvider {
   }
 
   async saveResourceFile(
-    resource: ResourceProps,
-    file: FileProps,
+    resource: StorageResourceInfo,
+    file: StorageFileInfo,
     payload: Uint8Array
   ) {
     // Not implemented

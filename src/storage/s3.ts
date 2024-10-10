@@ -7,8 +7,11 @@ import {
 } from "@aws-sdk/client-s3";
 import StorageProvider from "./storage-provider";
 import runtimeConfig from "./../config";
-import type { ResourceProps, FileProps } from "./index";
-import type { S3Config } from "../types/storage";
+import type {
+  S3Config,
+  StorageFileInfo,
+  StorageResourceInfo,
+} from "../types/storage";
 import CLI from "../cli";
 
 class S3StorageProvider implements StorageProvider {
@@ -70,7 +73,7 @@ class S3StorageProvider implements StorageProvider {
     }
   }
 
-  generateResourcePath(resource: ResourceProps) {
+  generateResourcePath(resource: StorageResourceInfo) {
     const { source, type, subType, slug } = resource;
 
     const typeDir = this.mapTypeToDir(type);
@@ -79,7 +82,7 @@ class S3StorageProvider implements StorageProvider {
     return `${source}/${typeDir}/${slug}/${subTypeDir}`;
   }
 
-  generateKey(resource: ResourceProps, file: FileProps) {
+  generateKey(resource: StorageResourceInfo, file: StorageFileInfo) {
     const { type, subType, slug, source } = resource;
     const fileName = `${file.slug}.${file.ext}`;
 
@@ -132,8 +135,8 @@ class S3StorageProvider implements StorageProvider {
   }
 
   async saveResourceFile(
-    resource: ResourceProps,
-    file: FileProps,
+    resource: StorageResourceInfo,
+    file: StorageFileInfo,
     payload: Uint8Array
   ) {
     const key = this.generateKey(resource, file);
