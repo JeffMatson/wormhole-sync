@@ -1,9 +1,13 @@
 import { getStorageProvider } from "../../storage";
 import { DownloadQueue, FileQueue } from "../../queues";
-import { fileTypeFromBuffer } from "file-type";
 import config from "../../config";
 import CLI from "../../cli";
 import type { Plugin } from "../../types/plugin";
+import { getPluginIdBySlugAndSource } from "~/db/plugin";
+import { getOrCreatePluginVersion } from "~/db/plugin-version";
+import { getDownloadLinkInfo, upsertLinkInfo } from "~/db/download-link";
+import { getFileInfo } from "~/utils";
+import { upsertFileInfo } from "~/db/file-info";
 
 const storageProvider = getStorageProvider();
 
@@ -31,10 +35,60 @@ function getDownloadLink(plugin: Plugin, version: string) {
   return plugin.versions[version];
 }
 
+async function downloadRelease(plugin: Plugin, version: string) {
+  const url = getDownloadLink(plugin, version);
+
+  const downloaded = await DownloadQueue.add(async () => {
+    const fetched = await fetchRelease(url);
+    return fetched;
+  });
+
+  if (!downloaded) {
+    throw new Error("Failed to download release");
+  }
+
+  return downloaded;
+}
+
+export async function syncLinkInfo(payload: Uint8Array, downloadLink: string) {
+  const existingLinkInfo = await getDownloadLinkInfo(
+    { url: downloadLink },
+    { fileInfo: true }
+  );
+
+  const toSync = {
+    ext: true,
+    mime: true,
+    size: true,
+    sha1: true,
+    sha256: true,
+    md5: true,
+  };
+
+  const payloadInfo = await getFileInfo(payload, toSync);
+
+  const result = await upsertLinkInfo({
+    url: downloadLink,
+    fileInfo: {
+      ...payloadInfo,
+    },
+  });
+
+  return result;
+}
+
 export async function processRelease(plugin: Plugin, version: string) {
   if (!config.syncFiles) {
     CLI.log(["info"], `Skipping file sync for ${plugin.slug} ${version}`);
     return;
+  }
+
+  if (!plugin.id) {
+    const pluginId = await getPluginIdBySlugAndSource(plugin.slug, "DOTORG");
+    if (!pluginId) {
+      throw new Error("Plugin not found in database");
+    }
+    plugin.id = pluginId;
   }
 
   const resourceProps = {
@@ -61,20 +115,8 @@ export async function processRelease(plugin: Plugin, version: string) {
     return;
   }
 
-  const payload = await DownloadQueue.add(async () => {
-    const url = getDownloadLink(plugin, version);
-    const fetched = await fetchRelease(url);
-    return fetched;
-  });
-
-  if (!payload) {
-    throw new Error("Failed to fetch release");
-  }
-
-  const info = await fileTypeFromBuffer(payload);
-  if (!info || info.ext !== "zip" || info.mime !== "application/zip") {
-    throw new Error("Invalid file type");
-  }
+  const downloaded = await downloadRelease(plugin, version);
+  // const fileInfo = await syncLinkInfo(downloaded, plugin.versions[version]);
 
   const written = await FileQueue.add(async () => {
     const resourceProps = {
@@ -84,13 +126,11 @@ export async function processRelease(plugin: Plugin, version: string) {
       slug: plugin.slug,
     };
 
-    const fileProps = {
-      slug: `${plugin.slug}.${version}`,
-      ext: info.ext,
-      mime: info.mime,
-    };
-
-    return storageProvider.saveResourceFile(resourceProps, fileProps, payload);
+    return storageProvider.saveResourceFile(
+      resourceProps,
+      fileProps,
+      downloaded
+    );
   });
 
   if (!written) {

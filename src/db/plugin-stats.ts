@@ -1,4 +1,3 @@
-import type { Prisma } from "@prisma/client";
 import prismaClient from "./client";
 
 // @TODO: dodge that any

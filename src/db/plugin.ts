@@ -1,9 +1,7 @@
 import { isString } from "es-toolkit";
 import { Prisma, Source } from "@prisma/client";
 import prismaClient from "./client";
-import config from "../config";
 import CLI from "../cli";
-import { updatePluginTags } from "./plugin-tags";
 import type { Plugin } from "../types/plugin";
 
 export async function pluginExists(slug: string, source: string = "DOTORG") {
@@ -322,9 +320,18 @@ export async function createVersion(
       pluginId,
       version,
       downloadLinks: {
-        create: {
-          url,
-          source,
+        connectOrCreate: {
+          where: {
+            url,
+            source,
+          },
+          create: {
+            url,
+            source,
+            fileInfo: {
+              create: {},
+            },
+          },
         },
       },
     },
@@ -417,16 +424,23 @@ export async function updatePluginStats(
   pluginId: number,
   stats: Prisma.DotOrgPluginStatsUpdateInput
 ) {
-  return prismaClient.plugin.update({
-    where: {
-      id: pluginId,
-    },
-    data: {
-      dotOrgStats: {
-        update: stats,
+  try {
+    const updated = await prismaClient.plugin.update({
+      where: {
+        id: pluginId,
       },
-    },
-  });
+      data: {
+        dotOrgStats: {
+          update: stats,
+        },
+      },
+    });
+
+    return updated;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
 }
 
 export async function createPluginIcon(
@@ -535,6 +549,17 @@ export async function deletePluginBanner(pluginId: number, bannerId: number) {
           id: bannerId,
         },
       },
+    },
+  });
+}
+
+export async function updatePluginName(id: number, name: string) {
+  return prismaClient.plugin.update({
+    where: {
+      id,
+    },
+    data: {
+      name,
     },
   });
 }
@@ -814,15 +839,18 @@ export async function getPlugins() {
   return plugins;
 }
 
-export async function getPluginVersion(id: number) {
-  const plugin = await prismaClient.plugin.findFirst({
-    select: {
-      version: true,
-    },
+export async function getPluginIdBySlugAndSource(slug: string, source: Source) {
+  const plugin = await prismaClient.plugin.findUnique({
     where: {
-      id,
+      source_slug: {
+        slug,
+        source,
+      },
+    },
+    select: {
+      id: true,
     },
   });
 
-  return plugin?.version;
+  return plugin?.id;
 }

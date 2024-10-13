@@ -16,6 +16,7 @@ import {
   updatePluginAuthor,
   updatePluginCurrentVersion,
   updatePluginDescription,
+  updatePluginName,
   updatePluginRequirements,
   updatePluginStats,
   updatePluginTestedVersion,
@@ -25,6 +26,7 @@ import CLI from "../../cli";
 import type { Plugin } from "../../types/plugin";
 import type { Prisma, Source } from "@prisma/client";
 import { difference, isEqual } from "es-toolkit";
+import { updateDotOrgPluginStats } from "~/db/plugin-stats";
 
 export async function processPluginMeta(plugin: Plugin) {
   if (!config.syncDb) {
@@ -79,6 +81,7 @@ async function syncPluginMeta(plugin: Plugin) {
 
   const synced = {
     author: syncAuthor(plugin, existing.author),
+    name: syncName(plugin, existing.name),
     requirements: syncRequirements(plugin, existing.requirements),
     tested: syncTestedVersion(plugin, existing),
     versions: syncVersions(plugin, existing.versions),
@@ -92,6 +95,24 @@ async function syncPluginMeta(plugin: Plugin) {
   };
 
   return await Promise.all(Object.values(synced));
+}
+
+async function syncName(
+  plugin: Plugin,
+  existing: Prisma.PluginGetPayload<Prisma.PluginDefaultArgs>["name"]
+) {
+  const pluginId = plugin.id;
+  if (!pluginId) {
+    throw new Error("Plugin ID is required to sync name");
+  }
+
+  if (plugin.name === existing) {
+    CLI.log(["info"], "Name is already in sync! Skipping...");
+    return Promise.resolve(true);
+  }
+
+  CLI.log(["info"], "Name changes detected. Updating...");
+  return updatePluginName(pluginId, plugin.name);
 }
 
 async function syncBanners(
@@ -311,11 +332,11 @@ async function syncStats(plugin: Plugin) {
     ratingStars4: plugin.ratings.dotOrg.ratings["4"],
     ratingStars5: plugin.ratings.dotOrg.ratings["5"],
     supportThreads: plugin.support.dotOrg.threads.total,
-    supportResolvedThreads: plugin.support.dotOrg.threads.resolved,
+    supportThreadsResolved: plugin.support.dotOrg.threads.resolved,
   };
 
   CLI.log(["info"], "Updating stats from WordPress.org...");
-  return updatePluginStats(pluginId, pluginStats);
+  return updateDotOrgPluginStats(pluginId, pluginStats);
 }
 
 async function syncTags(

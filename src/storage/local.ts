@@ -74,6 +74,10 @@ class LocalStorageProvider implements StorageProvider {
     return [];
     // Not implemented
   }
+
+  async getFileInfo(fileKey: string, attributes?: {}) {
+    return null;
+  }
 }
 
 export default LocalStorageProvider;

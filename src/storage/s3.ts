@@ -4,6 +4,9 @@ import {
   HeadObjectCommand,
   type PutObjectCommandInput,
   type S3ServiceException,
+  ListObjectsV2Command,
+  GetObjectCommand,
+  GetObjectAttributesCommand,
 } from "@aws-sdk/client-s3";
 import StorageProvider from "./storage-provider";
 import runtimeConfig from "./../config";
@@ -91,6 +94,38 @@ class S3StorageProvider implements StorageProvider {
     return `${filePath}/${fileName}`;
   }
 
+  async getFile(key: string) {
+    try {
+      const response = await this.client.send(
+        new GetObjectCommand({
+          Bucket: runtimeConfig.s3.bucket,
+          Key: key,
+        })
+      );
+
+      return response;
+    } catch (err: any) {
+      throw err;
+    }
+  }
+
+  async getFileInfo(fileKey: string, attributes?: {}) {
+    try {
+      const exists = await this.client.send(
+        new GetObjectAttributesCommand({
+          Bucket: runtimeConfig.s3.bucket,
+          Key: fileKey,
+          ObjectAttributes: ["ETag"],
+        })
+      );
+
+      return exists;
+    } catch (err: any) {
+      console.error("Error: ", err.$response.data);
+      // throw err;
+    }
+  }
+
   generatePluginReleaseKey(
     pluginSlug: string,
     version: string,
@@ -107,7 +142,7 @@ class S3StorageProvider implements StorageProvider {
   async uploadFile(
     key: string,
     payload: Uint8Array,
-    props: { mime?: string } = {}
+    props: { mime?: string; sha1?: string } = {}
   ) {
     const commandArgs: PutObjectCommandInput = {
       Bucket: runtimeConfig.s3.bucket,
@@ -141,7 +176,7 @@ class S3StorageProvider implements StorageProvider {
   ) {
     const key = this.generateKey(resource, file);
 
-    return await this.uploadFile(key, payload, { mime: file.mime });
+    return await this.uploadFile(key, payload, file);
   }
 
   async getFilesInPath(path: string) {
