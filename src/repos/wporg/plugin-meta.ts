@@ -27,6 +27,7 @@ import type { Plugin } from "../../types/plugin";
 import type { Prisma, Source } from "@prisma/client";
 import { difference, isEqual } from "es-toolkit";
 import { updateDotOrgPluginStats } from "~/db/plugin-stats";
+import { upsertPluginRequirements } from "~/db/plugin-requirements";
 
 export async function processPluginMeta(plugin: Plugin) {
   if (!config.syncDb) {
@@ -511,7 +512,8 @@ async function syncRequirements(
     ["info"],
     `Existing requirements do not match! Updating requirements...`
   );
-  return updatePluginRequirements(pluginId, plugin.requirements);
+
+  return await upsertPluginRequirements(pluginId, plugin.requirements);
 }
 
 async function syncAuthor(
