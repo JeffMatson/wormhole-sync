@@ -224,30 +224,6 @@ export async function updatePluginAuthor(id: number, author: Plugin["author"]) {
   return updatedAuthor;
 }
 
-export async function updatePluginRequirements(
-  id: number,
-  requirements: Plugin["requirements"]
-) {
-  if (!requirements) {
-    throw new Error("Requirements are required to update plugin requirements");
-  }
-
-  return prismaClient.plugin.update({
-    where: {
-      id,
-    },
-    data: {
-      requirements: {
-        update: {
-          wpVersion: requirements.wp,
-          phpVersion: requirements.php,
-          pluginSlugs: requirements.plugins,
-        },
-      },
-    },
-  });
-}
-
 export async function updatePluginTestedVersion(id: number, tested?: string) {
   return prismaClient.plugin.update({
     where: {
@@ -315,27 +291,33 @@ export async function createVersion(
 ) {
   const { version, url, source } = props;
 
-  return prismaClient.pluginVersion.create({
-    data: {
-      pluginId,
-      version,
-      downloadLinks: {
-        connectOrCreate: {
-          where: {
-            url,
-            source,
-          },
-          create: {
-            url,
-            source,
-            fileInfo: {
-              create: {},
+  try {
+    const created = await prismaClient.pluginVersion.create({
+      data: {
+        pluginId,
+        version,
+        downloadLinks: {
+          connectOrCreate: {
+            where: {
+              url,
+              source,
+            },
+            create: {
+              url,
+              source,
+              fileInfo: {
+                create: {},
+              },
             },
           },
         },
       },
-    },
-  });
+    });
+    return created;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
 }
 
 export async function updatePluginDescription(
@@ -415,71 +397,6 @@ export async function setPluginTags(
         set: tags.map((tag) => ({
           slug: tag.slug,
         })),
-      },
-    },
-  });
-}
-
-export async function updatePluginStats(
-  pluginId: number,
-  stats: Prisma.DotOrgPluginStatsUpdateInput
-) {
-  try {
-    const updated = await prismaClient.plugin.update({
-      where: {
-        id: pluginId,
-      },
-      data: {
-        dotOrgStats: {
-          update: stats,
-        },
-      },
-    });
-
-    return updated;
-  } catch (error) {
-    console.error(error);
-    throw error;
-  }
-}
-
-export async function createPluginIcon(
-  pluginId: number,
-  icon: { slug: string; url: string; source: string }
-) {
-  try {
-    const updated = await prismaClient.plugin.update({
-      where: {
-        id: pluginId,
-      },
-      data: {
-        icons: {
-          create: {
-            slug: icon.slug,
-            url: icon.url,
-            source: icon.source as Source,
-          },
-        },
-      },
-    });
-
-    return updated;
-  } catch (error) {
-    console.error(error);
-    throw error;
-  }
-}
-
-export async function deletePluginIcon(pluginId: number, iconId: number) {
-  return prismaClient.plugin.update({
-    where: {
-      id: pluginId,
-    },
-    data: {
-      icons: {
-        delete: {
-          id: iconId,
-        },
       },
     },
   });

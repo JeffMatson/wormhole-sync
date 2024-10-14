@@ -1,12 +1,10 @@
 import {
   createPlugin,
   createPluginBanner,
-  createPluginIcon,
   createPluginScreenshot,
   createPluginTag,
   createVersion,
   deletePluginBanner,
-  deletePluginIcon,
   deletePluginScreenshot,
   deleteVersion,
   disconnectPluginTag,
@@ -17,8 +15,6 @@ import {
   updatePluginCurrentVersion,
   updatePluginDescription,
   updatePluginName,
-  updatePluginRequirements,
-  updatePluginStats,
   updatePluginTestedVersion,
 } from "../../db/plugin";
 import config from "../../config";
@@ -28,6 +24,7 @@ import type { Prisma, Source } from "@prisma/client";
 import { difference, isEqual } from "es-toolkit";
 import { updateDotOrgPluginStats } from "~/db/plugin-stats";
 import { upsertPluginRequirements } from "~/db/plugin-requirements";
+import { createPluginIcon, deletePluginIcon } from "~/db/plugin-assets";
 
 export async function processPluginMeta(plugin: Plugin) {
   if (!config.syncDb) {
@@ -283,29 +280,27 @@ async function syncIcons(
     return null;
   }
 
-  const updated: Promise<any>[] = [];
+  const updated = [];
 
   if (toCreate.length) {
     CLI.log(["info"], "New icons found! Creating icons...");
-    const created = toCreate.map((icon) => {
-      return createPluginIcon(pluginId, icon);
-    });
-
-    updated.push(...created);
+    for (const icon of toCreate) {
+      const created = await createPluginIcon(pluginId, icon);
+      updated.push(created);
+    }
   }
 
   if (toDelete.length) {
     CLI.log(["info"], "Old icons found! Removing icons...");
-    const removed = toDelete.map((icon) => {
+    for (const icon of toDelete) {
       const iconId = existing?.find((i) => i.slug === icon.slug)?.id;
       if (!iconId) {
-        return Promise.reject();
+        continue;
       }
 
-      return deletePluginIcon(pluginId, iconId);
-    });
-
-    updated.push(...removed);
+      const removed = await deletePluginIcon(iconId);
+      updated.push(removed);
+    }
   }
 
   return updated;
