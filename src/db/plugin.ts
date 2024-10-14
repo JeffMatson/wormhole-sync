@@ -447,20 +447,27 @@ export async function createPluginIcon(
   pluginId: number,
   icon: { slug: string; url: string; source: string }
 ) {
-  return prismaClient.plugin.update({
-    where: {
-      id: pluginId,
-    },
-    data: {
-      icons: {
-        create: {
-          slug: icon.slug,
-          url: icon.url,
-          source: icon.source as Source,
+  try {
+    const updated = await prismaClient.plugin.update({
+      where: {
+        id: pluginId,
+      },
+      data: {
+        icons: {
+          create: {
+            slug: icon.slug,
+            url: icon.url,
+            source: icon.source as Source,
+          },
         },
       },
-    },
-  });
+    });
+
+    return updated;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
 }
 
 export async function deletePluginIcon(pluginId: number, iconId: number) {
