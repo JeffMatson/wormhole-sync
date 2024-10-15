@@ -10,13 +10,13 @@ import { consola } from "consola";
 const bars: Record<string, SingleBar> = {};
 
 CLIService.on("logDebug", (message) => {
-  if (WormholeSyncConfig.verbose) {
+  if (WormholeSyncConfig.debug) {
     consola.debug(message);
   }
 });
 
 CLIService.on("logInfo", (message) => {
-  if (WormholeSyncConfig.verbose) {
+  if (WormholeSyncConfig.verbose || WormholeSyncConfig.debug) {
     consola.info(message);
   }
 });
