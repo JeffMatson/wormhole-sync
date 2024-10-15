@@ -70,7 +70,9 @@ export async function syncLinkInfo(payload: Uint8Array, downloadLink: string) {
   const result = await upsertLinkInfo({
     url: downloadLink,
     fileInfo: {
-      ...payloadInfo,
+      create: {
+        ...payloadInfo,
+      },
     },
   });
 
