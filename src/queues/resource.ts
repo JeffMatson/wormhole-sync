@@ -1,11 +1,11 @@
 import PQueue from "p-queue";
-import config from "../config";
+import { WormholeSyncConfig } from "~/config";
 import CLI from "../cli";
 
 let completed = 0;
 
 const ResourceQueue = new PQueue({
-  concurrency: config.concurrency.plugins,
+  concurrency: WormholeSyncConfig.concurrency.plugins,
 });
 
 CLI.trackQueue("resource");
