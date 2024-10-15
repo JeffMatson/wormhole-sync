@@ -1,13 +1,7 @@
 import {
   createPlugin,
-  createPluginBanner,
-  createPluginIcon,
-  createPluginScreenshot,
   createPluginTag,
   createVersion,
-  deletePluginBanner,
-  deletePluginIcon,
-  deletePluginScreenshot,
   deleteVersion,
   disconnectPluginTag,
   getPlugin,
@@ -16,18 +10,27 @@ import {
   updatePluginAuthor,
   updatePluginCurrentVersion,
   updatePluginDescription,
-  updatePluginRequirements,
-  updatePluginStats,
+  updatePluginName,
   updatePluginTestedVersion,
 } from "../../db/plugin";
-import config from "../../config";
+import { WormholeSyncConfig } from "~/config";
 import CLI from "../../cli";
 import type { Plugin } from "../../types/plugin";
 import type { Prisma, Source } from "@prisma/client";
 import { difference, isEqual } from "es-toolkit";
+import { updateDotOrgPluginStats } from "~/db/plugin-stats";
+import { upsertPluginRequirements } from "~/db/plugin-requirements";
+import {
+  createPluginBanner,
+  createPluginIcon,
+  createPluginScreenshot,
+  deletePluginBanner,
+  deletePluginIcon,
+  deletePluginScreenshot,
+} from "~/db/plugin-assets";
 
 export async function processPluginMeta(plugin: Plugin) {
-  if (!config.syncDb) {
+  if (!WormholeSyncConfig.syncDb) {
     CLI.log(["info"], `Skipping DB sync for ${plugin.slug}`);
     return;
   }
@@ -79,6 +82,7 @@ async function syncPluginMeta(plugin: Plugin) {
 
   const synced = {
     author: syncAuthor(plugin, existing.author),
+    name: syncName(plugin, existing.name),
     requirements: syncRequirements(plugin, existing.requirements),
     tested: syncTestedVersion(plugin, existing),
     versions: syncVersions(plugin, existing.versions),
@@ -92,6 +96,24 @@ async function syncPluginMeta(plugin: Plugin) {
   };
 
   return await Promise.all(Object.values(synced));
+}
+
+async function syncName(
+  plugin: Plugin,
+  existing: Prisma.PluginGetPayload<Prisma.PluginDefaultArgs>["name"]
+) {
+  const pluginId = plugin.id;
+  if (!pluginId) {
+    throw new Error("Plugin ID is required to sync name");
+  }
+
+  if (plugin.name === existing) {
+    CLI.log(["info"], "Name is already in sync! Skipping...");
+    return Promise.resolve(true);
+  }
+
+  CLI.log(["info"], "Name changes detected. Updating...");
+  return updatePluginName(pluginId, plugin.name);
 }
 
 async function syncBanners(
@@ -128,29 +150,27 @@ async function syncBanners(
   const toCreate = difference(newBanners, existingBanners);
   const toDelete = difference(existingBanners, newBanners);
 
-  const updated: Promise<any>[] = [];
+  const updated: any = [];
 
   if (toCreate.length) {
     CLI.log(["info"], "New banners found! Creating banners...");
-    const created = toCreate.map((banner) => {
-      return createPluginBanner(pluginId, banner);
-    });
-
-    updated.push(...created);
+    for (const banner of toCreate) {
+      const created = await createPluginBanner(pluginId, banner);
+      updated.push(created);
+    }
   }
 
   if (toDelete.length) {
     CLI.log(["info"], "Old banners found! Removing banners...");
-    const removed = toDelete.map((banner) => {
+    for (const banner of toDelete) {
       const bannerId = existing?.find((b) => b.slug === banner.slug)?.id;
       if (!bannerId) {
-        return Promise.reject();
+        continue;
       }
 
-      return deletePluginBanner(pluginId, bannerId);
-    });
-
-    updated.push(...removed);
+      const removed = await deletePluginBanner(bannerId);
+      updated.push(removed);
+    }
   }
 
   return updated;
@@ -198,31 +218,28 @@ async function syncScreenshots(
     return !newScreenshots.find((s) => s.slug === screenshot.slug);
   });
 
-  const updated: Promise<any>[] = [];
-
+  const updated: any[] = [];
   if (toCreate.length) {
     CLI.log(["info"], "New screenshots found! Creating screenshots...");
-    const created = toCreate.map((screenshot) => {
-      return createPluginScreenshot(pluginId, screenshot);
-    });
-
-    updated.push(...created);
+    for (const screenshot of toCreate) {
+      const created = await createPluginScreenshot(pluginId, screenshot);
+      updated.push(created);
+    }
   }
 
   if (toDelete.length) {
     CLI.log(["info"], "Old screenshots found! Removing screenshots...");
-    const removed = toDelete.map((screenshot) => {
+    for (const screenshot of toDelete) {
       const screenshotId = existing?.find(
         (s) => s.slug === screenshot.slug
       )?.id;
       if (!screenshotId) {
-        return Promise.reject();
+        continue;
       }
 
-      return deletePluginScreenshot(pluginId, screenshotId);
-    });
-
-    updated.push(...removed);
+      const removed = await deletePluginScreenshot(screenshotId);
+      updated.push(removed);
+    }
   }
 
   return updated;
@@ -261,29 +278,27 @@ async function syncIcons(
     return null;
   }
 
-  const updated: Promise<any>[] = [];
+  const updated = [];
 
   if (toCreate.length) {
     CLI.log(["info"], "New icons found! Creating icons...");
-    const created = toCreate.map((icon) => {
-      return createPluginIcon(pluginId, icon);
-    });
-
-    updated.push(...created);
+    for (const icon of toCreate) {
+      const created = await createPluginIcon(pluginId, icon);
+      updated.push(created);
+    }
   }
 
   if (toDelete.length) {
     CLI.log(["info"], "Old icons found! Removing icons...");
-    const removed = toDelete.map((icon) => {
+    for (const icon of toDelete) {
       const iconId = existing?.find((i) => i.slug === icon.slug)?.id;
       if (!iconId) {
-        return Promise.reject();
+        continue;
       }
 
-      return deletePluginIcon(pluginId, iconId);
-    });
-
-    updated.push(...removed);
+      const removed = await deletePluginIcon(iconId);
+      updated.push(removed);
+    }
   }
 
   return updated;
@@ -311,11 +326,11 @@ async function syncStats(plugin: Plugin) {
     ratingStars4: plugin.ratings.dotOrg.ratings["4"],
     ratingStars5: plugin.ratings.dotOrg.ratings["5"],
     supportThreads: plugin.support.dotOrg.threads.total,
-    supportResolvedThreads: plugin.support.dotOrg.threads.resolved,
+    supportThreadsResolved: plugin.support.dotOrg.threads.resolved,
   };
 
   CLI.log(["info"], "Updating stats from WordPress.org...");
-  return updatePluginStats(pluginId, pluginStats);
+  return updateDotOrgPluginStats(pluginId, pluginStats);
 }
 
 async function syncTags(
@@ -490,7 +505,8 @@ async function syncRequirements(
     ["info"],
     `Existing requirements do not match! Updating requirements...`
   );
-  return updatePluginRequirements(pluginId, plugin.requirements);
+
+  return await upsertPluginRequirements(pluginId, plugin.requirements);
 }
 
 async function syncAuthor(

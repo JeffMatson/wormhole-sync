@@ -19,7 +19,8 @@ export const ConfigSchema = z.object({
   syncVersions: z.boolean(),
   syncAssets: z.boolean(),
   verbose: z.boolean(),
-  storage: z.enum(["local", "s3"]),
+  debug: z.boolean(),
+  storage: z.enum(["local", "s3", "b2"]),
   exhaustive: z.boolean(),
   concurrency: z.object({
     plugins: PositiveNumberSchema,

@@ -37,6 +37,7 @@ const EnvSchema = z
     SYNC_VERSIONS: EnvBooleanSchema,
     SYNC_ASSETS: EnvBooleanSchema,
     VERBOSE: EnvBooleanSchema,
+    DEBUG: EnvBooleanSchema,
     STORAGE: EnvStringSchema,
     CONCURRENT_PLUGINS: EnvNumberSchema,
     CONCURRENT_PLUGIN_VERSIONS: EnvNumberSchema,
@@ -62,6 +63,7 @@ const envConfig = {
   syncVersions: envValues.SYNC_VERSIONS,
   syncAssets: envValues.SYNC_ASSETS,
   verbose: envValues.VERBOSE,
+  debug: envValues.DEBUG,
   exhaustive: envValues.EXHAUSTIVE,
   storage: envValues.STORAGE as Config["storage"],
   concurrency: {

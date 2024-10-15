@@ -12,6 +12,6 @@ function mergeConfigs(...configs: any[]) {
   return ConfigSchema.parse(merged);
 }
 
-const config = mergeConfigs(defaultConfig, envConfig, cliConfig);
+const WormholeSyncConfig = mergeConfigs(defaultConfig, envConfig, cliConfig);
 
-export default config;
+export { WormholeSyncConfig };

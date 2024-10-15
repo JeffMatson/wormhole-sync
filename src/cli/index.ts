@@ -1,7 +1,7 @@
 import CLIService from "./service";
 import { dotOrgPluginFetchProgressBar, queueProgressBar } from "./progress-bar";
 import type { SingleBar } from "cli-progress";
-import config from "../config";
+import { WormholeSyncConfig } from "~/config";
 import chalk from "chalk";
 import type { QueueUpdate } from "./types";
 import { getQueueTitle } from "./utils";
@@ -10,13 +10,13 @@ import { consola } from "consola";
 const bars: Record<string, SingleBar> = {};
 
 CLIService.on("logDebug", (message) => {
-  if (config.verbose) {
+  if (WormholeSyncConfig.debug) {
     consola.debug(message);
   }
 });
 
 CLIService.on("logInfo", (message) => {
-  if (config.verbose) {
+  if (WormholeSyncConfig.verbose || WormholeSyncConfig.debug) {
     consola.info(message);
   }
 });

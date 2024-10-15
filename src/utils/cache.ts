@@ -1,7 +1,7 @@
 import fs from "fs";
-import config from "~/config";
+import { WormholeSyncConfig } from "~/config";
 
-const cachePaths = config.paths.local.cache;
+const cachePaths = WormholeSyncConfig.paths.local.cache;
 
 /**
  * Initializes the cache directories.

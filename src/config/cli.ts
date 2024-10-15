@@ -6,6 +6,7 @@ const storageTypes = ["local", "s3"] as const;
 // @TODO: Actually... fix the whole damn file.
 interface CliConfig {
   verbose?: boolean;
+  debug?: boolean;
   syncDb?: boolean;
   syncFiles?: boolean;
   syncVersions?: boolean;
@@ -21,6 +22,9 @@ const { values, positionals } = parseArgs({
       type: "boolean",
     },
     verbose: {
+      type: "boolean",
+    },
+    debug: {
       type: "boolean",
     },
     exhaustive: {
@@ -81,6 +85,7 @@ const { values, positionals } = parseArgs({
 
 const cliConfig: CliConfig = {
   verbose: values.verbose,
+  debug: values.debug,
   exhaustive: values.exhaustive,
 };
 

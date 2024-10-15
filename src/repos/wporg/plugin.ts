@@ -139,7 +139,7 @@ function transformIcons(
 
   let slug: keyof typeof icons;
   for (slug in icons) {
-    if (isString(icons.slug))
+    if (isString(icons[slug]))
       transformed.push({
         slug: slug,
         sources: {

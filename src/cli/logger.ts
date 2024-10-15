@@ -1,16 +1,16 @@
 import chalk from "chalk";
-import config from "../config";
+import { WormholeSyncConfig } from "~/config";
 import { EventEmitter } from "events";
 
 export function startLogger(CLIService: EventEmitter) {
   CLIService.on("logDebug", (message) => {
-    if (config.verbose) {
+    if (WormholeSyncConfig.verbose) {
       console.log(chalk.gray(`[DEBUG] ${message}`));
     }
   });
 
   CLIService.on("logInfo", (message) => {
-    if (config.verbose) {
+    if (WormholeSyncConfig.verbose) {
       console.log(chalk.blue(`[INFO] ${message}`));
     }
   });

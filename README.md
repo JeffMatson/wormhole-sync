@@ -148,6 +148,18 @@ Example:
 BUCKET_NAME="wp-repo-sync"
 ```
 
+### EXHAUSTIVE
+
+Bypasses some speed improvements for more exhaustive checks.
+
+For example, when checking for existing files, exhaustive mode will check for each file individually, rather than performing a bulk check.
+
+Example:
+
+```
+EXHAUSTIVE="true"
+```
+
 ## Runtime Arguments
 
 Most environment variables can be easily overridden at runtime. If a runtime argument is provided, it will always take precedence over the associated environment variable.
@@ -183,3 +195,7 @@ Sets the number of concurrent plugin versions. Environment variable will be igno
 ### concurrent-downloads
 
 Sets the number of concurrent downloads. Environment variable will be ignored. See the `CONCURRENT_DOWNLOADS` [environment variable](#environment-variables) for more information.
+
+### exhaustive
+
+Disables speedups and performs more exhaustive tasks. Environment variable will be ignored. See the `EXHAUSTIVE` [environment variable](#environment-variables) for more information.

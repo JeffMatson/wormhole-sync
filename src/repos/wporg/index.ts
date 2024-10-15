@@ -15,6 +15,7 @@ async function runPluginTasks(plugin: Plugin) {
   CLI.log(["success"], `Synced basic data for ${plugin.slug} plugins.`);
 
   plugin.id = result.id;
+
   const tasks = [
     processPluginMeta(plugin),
     processPluginReleases(plugin),

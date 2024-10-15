@@ -1,9 +1,7 @@
 import { isString } from "es-toolkit";
 import { Prisma, Source } from "@prisma/client";
 import prismaClient from "./client";
-import config from "../config";
 import CLI from "../cli";
-import { updatePluginTags } from "./plugin-tags";
 import type { Plugin } from "../types/plugin";
 
 export async function pluginExists(slug: string, source: string = "DOTORG") {
@@ -226,30 +224,6 @@ export async function updatePluginAuthor(id: number, author: Plugin["author"]) {
   return updatedAuthor;
 }
 
-export async function updatePluginRequirements(
-  id: number,
-  requirements: Plugin["requirements"]
-) {
-  if (!requirements) {
-    throw new Error("Requirements are required to update plugin requirements");
-  }
-
-  return prismaClient.plugin.update({
-    where: {
-      id,
-    },
-    data: {
-      requirements: {
-        update: {
-          wpVersion: requirements.wp,
-          phpVersion: requirements.php,
-          pluginSlugs: requirements.plugins,
-        },
-      },
-    },
-  });
-}
-
 export async function updatePluginTestedVersion(id: number, tested?: string) {
   return prismaClient.plugin.update({
     where: {
@@ -317,18 +291,58 @@ export async function createVersion(
 ) {
   const { version, url, source } = props;
 
-  return prismaClient.pluginVersion.create({
-    data: {
-      pluginId,
-      version,
-      downloadLinks: {
-        create: {
-          url,
-          source,
+  try {
+    const created = await prismaClient.pluginVersion.upsert({
+      where: {
+        pluginId_version: {
+          pluginId,
+          version,
         },
       },
-    },
-  });
+      create: {
+        pluginId,
+        version,
+        downloadLinks: {
+          connectOrCreate: {
+            where: {
+              url,
+              source,
+            },
+            create: {
+              url,
+              source,
+              fileInfo: {
+                create: {},
+              },
+            },
+          },
+        },
+      },
+      update: {
+        pluginId,
+        version,
+        downloadLinks: {
+          connectOrCreate: {
+            where: {
+              url,
+              source,
+            },
+            create: {
+              url,
+              source,
+              fileInfo: {
+                create: {},
+              },
+            },
+          },
+        },
+      },
+    });
+    return created;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
 }
 
 export async function updatePluginDescription(
@@ -413,128 +427,13 @@ export async function setPluginTags(
   });
 }
 
-export async function updatePluginStats(
-  pluginId: number,
-  stats: Prisma.DotOrgPluginStatsUpdateInput
-) {
+export async function updatePluginName(id: number, name: string) {
   return prismaClient.plugin.update({
     where: {
-      id: pluginId,
+      id,
     },
     data: {
-      dotOrgStats: {
-        update: stats,
-      },
-    },
-  });
-}
-
-export async function createPluginIcon(
-  pluginId: number,
-  icon: { slug: string; url: string; source: string }
-) {
-  return prismaClient.plugin.update({
-    where: {
-      id: pluginId,
-    },
-    data: {
-      icons: {
-        create: {
-          slug: icon.slug,
-          url: icon.url,
-          source: icon.source as Source,
-        },
-      },
-    },
-  });
-}
-
-export async function deletePluginIcon(pluginId: number, iconId: number) {
-  return prismaClient.plugin.update({
-    where: {
-      id: pluginId,
-    },
-    data: {
-      icons: {
-        delete: {
-          id: iconId,
-        },
-      },
-    },
-  });
-}
-
-export async function createPluginScreenshot(
-  pluginId: number,
-  screenshot: { slug: string; url: string; source: string; caption?: string }
-) {
-  return prismaClient.plugin.update({
-    where: {
-      id: pluginId,
-    },
-    data: {
-      screenshots: {
-        create: {
-          slug: screenshot.slug,
-          url: screenshot.url,
-          source: screenshot.source as Source,
-          caption: screenshot.caption,
-        },
-      },
-    },
-  });
-}
-
-export async function deletePluginScreenshot(
-  pluginId: number,
-  screenshotId: number
-) {
-  console.log(pluginId, screenshotId);
-  return prismaClient.plugin.update({
-    where: {
-      id: pluginId,
-    },
-    data: {
-      screenshots: {
-        delete: {
-          id: screenshotId,
-        },
-      },
-    },
-  });
-}
-
-export async function createPluginBanner(
-  pluginId: number,
-  banner: { slug: string; url: string; source: string }
-) {
-  return prismaClient.plugin.update({
-    where: {
-      id: pluginId,
-    },
-    data: {
-      banners: {
-        create: {
-          slug: banner.slug,
-          url: banner.url,
-          source: banner.source as Source,
-        },
-      },
-    },
-  });
-}
-
-export async function deletePluginBanner(pluginId: number, bannerId: number) {
-  return prismaClient.plugin.update({
-    where: {
-      id: pluginId,
-    },
-    data: {
-      banners: {
-        delete: {
-          id: bannerId,
-        },
-      },
+      name,
     },
   });
 }
@@ -814,15 +713,18 @@ export async function getPlugins() {
   return plugins;
 }
 
-export async function getPluginVersion(id: number) {
-  const plugin = await prismaClient.plugin.findFirst({
-    select: {
-      version: true,
-    },
+export async function getPluginIdBySlugAndSource(slug: string, source: Source) {
+  const plugin = await prismaClient.plugin.findUnique({
     where: {
-      id,
+      source_slug: {
+        slug,
+        source,
+      },
+    },
+    select: {
+      id: true,
     },
   });
 
-  return plugin?.version;
+  return plugin?.id;
 }

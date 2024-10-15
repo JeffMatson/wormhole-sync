@@ -89,21 +89,41 @@ model Tag {
 }
 
 model PluginVersion {
-  id            Int            @id @default(autoincrement())
-  version       String
-  hash          String?
-  downloadLinks DownloadLink[]
-  added         DateTime?      @default(now())
-  pluginId      Int
-  plugin        Plugin         @relation(fields: [pluginId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  id              Int            @id @default(autoincrement())
+  version         String
+  pluginId        Int
+  plugin          Plugin         @relation(fields: [pluginId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  downloadLinkIds Int[]          @unique
+  downloadLinks   DownloadLink[]
+  added           DateTime?      @default(now())
+  updatedAt       DateTime       @updatedAt @default(now())
+
+  @@unique([pluginId, version])
 }
 
 model DownloadLink {
-  id        Int           @id @default(autoincrement())
-  versionId Int   
-  version   PluginVersion @relation(fields: [versionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  source    Source        @default(UNKNOWN)
-  url       String
+  id              Int           @id @default(autoincrement())
+  source          Source        @default(UNKNOWN)
+  url             String        @unique
+  fileId          Int?          @unique
+  fileInfo        FileInfo?     @relation(fields: [fileId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  pluginVersionId Int?
+  pluginVersion   PluginVersion? @relation(fields: [pluginVersionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+}
+
+model FileInfo {
+  id        Int    @id @default(autoincrement())
+  sourceUrl DownloadLink?
+  name      String?
+  size      Int?
+  md5       String?
+  sha1      String?
+  sha256    String?
+  sha512    String?
+  mime      String?
+  ext       String?
+  path      String?
+  updatedAt DateTime @updatedAt
 }
 
 model PluginIcon {
