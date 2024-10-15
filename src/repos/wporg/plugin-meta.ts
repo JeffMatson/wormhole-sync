@@ -13,7 +13,7 @@ import {
   updatePluginName,
   updatePluginTestedVersion,
 } from "../../db/plugin";
-import config from "../../config";
+import { WormholeSyncConfig } from "~/config";
 import CLI from "../../cli";
 import type { Plugin } from "../../types/plugin";
 import type { Prisma, Source } from "@prisma/client";
@@ -30,7 +30,7 @@ import {
 } from "~/db/plugin-assets";
 
 export async function processPluginMeta(plugin: Plugin) {
-  if (!config.syncDb) {
+  if (!WormholeSyncConfig.syncDb) {
     CLI.log(["info"], `Skipping DB sync for ${plugin.slug}`);
     return;
   }

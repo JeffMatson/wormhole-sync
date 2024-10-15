@@ -9,7 +9,7 @@ import {
   GetObjectAttributesCommand,
 } from "@aws-sdk/client-s3";
 import StorageProvider from "./storage-provider";
-import runtimeConfig from "./../config";
+import { WormholeSyncConfig } from "~/config";
 import type {
   S3Config,
   StorageFileInfo,
@@ -49,7 +49,7 @@ class S3StorageProvider implements StorageProvider {
   }
 
   mapTypeToDir(type: string) {
-    const s3Paths = runtimeConfig.paths.s3;
+    const s3Paths = WormholeSyncConfig.paths.s3;
 
     switch (type) {
       case "plugin":
@@ -98,7 +98,7 @@ class S3StorageProvider implements StorageProvider {
     try {
       const response = await this.client.send(
         new GetObjectCommand({
-          Bucket: runtimeConfig.s3.bucket,
+          Bucket: WormholeSyncConfig.s3.bucket,
           Key: key,
         })
       );
@@ -113,7 +113,7 @@ class S3StorageProvider implements StorageProvider {
     try {
       const exists = await this.client.send(
         new GetObjectAttributesCommand({
-          Bucket: runtimeConfig.s3.bucket,
+          Bucket: WormholeSyncConfig.s3.bucket,
           Key: fileKey,
           ObjectAttributes: ["ETag"],
         })
@@ -145,7 +145,7 @@ class S3StorageProvider implements StorageProvider {
     props: { mime?: string; sha1?: string } = {}
   ) {
     const commandArgs: PutObjectCommandInput = {
-      Bucket: runtimeConfig.s3.bucket,
+      Bucket: WormholeSyncConfig.s3.bucket,
       Key: key,
       Body: payload,
     };
@@ -156,16 +156,21 @@ class S3StorageProvider implements StorageProvider {
 
     try {
       const sent = await this.client.send(new PutObjectCommand(commandArgs));
-      CLI.log(["success"], `Uploaded ${key} to ${runtimeConfig.s3.bucket}`);
+      CLI.log(
+        ["success"],
+        `Uploaded ${key} to ${WormholeSyncConfig.s3.bucket}`
+      );
       return sent;
     } catch (err: S3ServiceException | any) {
       console.error(err.$metadata);
       console.error(err.$response);
       CLI.log(
         ["error"],
-        `Failed to upload ${key} to ${runtimeConfig.s3.bucket}`
+        `Failed to upload ${key} to ${WormholeSyncConfig.s3.bucket}`
       );
-      throw new Error(`Failed to upload ${key} to ${runtimeConfig.s3.bucket}`);
+      throw new Error(
+        `Failed to upload ${key} to ${WormholeSyncConfig.s3.bucket}`
+      );
     }
   }
 
@@ -183,7 +188,7 @@ class S3StorageProvider implements StorageProvider {
     try {
       const response = await this.client.send(
         new ListObjectsV2Command({
-          Bucket: runtimeConfig.s3.bucket,
+          Bucket: WormholeSyncConfig.s3.bucket,
           Prefix: path,
         })
       );
@@ -201,14 +206,17 @@ class S3StorageProvider implements StorageProvider {
     try {
       const exists = await this.client.send(
         new HeadObjectCommand({
-          Bucket: runtimeConfig.s3.bucket,
+          Bucket: WormholeSyncConfig.s3.bucket,
           Key: key,
         })
       );
 
       const responseCode = exists.$metadata.httpStatusCode;
       if (responseCode === 200) {
-        CLI.log(["info"], `File ${key} exists in ${runtimeConfig.s3.bucket}`);
+        CLI.log(
+          ["info"],
+          `File ${key} exists in ${WormholeSyncConfig.s3.bucket}`
+        );
       }
 
       return responseCode === 200;
@@ -216,7 +224,7 @@ class S3StorageProvider implements StorageProvider {
       if (err?.$metadata?.httpStatusCode === 404) {
         CLI.log(
           ["info"],
-          `File ${key} does not exist in ${runtimeConfig.s3.bucket}`
+          `File ${key} does not exist in ${WormholeSyncConfig.s3.bucket}`
         );
         return false;
       }

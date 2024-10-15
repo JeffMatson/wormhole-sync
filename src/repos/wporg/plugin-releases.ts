@@ -1,6 +1,6 @@
 import { getStorageProvider } from "../../storage";
 import { DownloadQueue, FileQueue } from "../../queues";
-import config from "../../config";
+import { WormholeSyncConfig } from "~/config";
 import CLI from "../../cli";
 import type { Plugin } from "../../types/plugin";
 import { getPluginIdBySlugAndSource } from "~/db/plugin";
@@ -78,7 +78,7 @@ export async function syncLinkInfo(payload: Uint8Array, downloadLink: string) {
 }
 
 export async function processRelease(plugin: Plugin, version: string) {
-  if (!config.syncFiles) {
+  if (!WormholeSyncConfig.syncFiles) {
     CLI.log(["info"], `Skipping file sync for ${plugin.slug} ${version}`);
     return;
   }
@@ -170,7 +170,7 @@ async function checkExistingFiles(plugin: Plugin) {
 }
 
 export async function processPluginReleases(plugin: Plugin) {
-  if (!config.exhaustive) {
+  if (!WormholeSyncConfig.exhaustive) {
     const allFilesExist = await checkExistingFiles(plugin);
     if (allFilesExist) {
       CLI.log(["info"], `All files exist for ${plugin.slug}. Skipping.`);
@@ -180,7 +180,7 @@ export async function processPluginReleases(plugin: Plugin) {
 
   const processed = [];
   for (const version in plugin.versions) {
-    if (!config.syncVersions && version !== plugin.version) {
+    if (!WormholeSyncConfig.syncVersions && version !== plugin.version) {
       continue;
     }
 

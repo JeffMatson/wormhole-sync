@@ -1,7 +1,7 @@
 import qs from "qs";
 import path from "path";
 import CLI from "~/cli";
-import config from "~/config";
+import { WormholeSyncConfig } from "~/config";
 import { PluginsApiResponseSchema } from "~/types/repos/wp-dot-org/response";
 import { DotOrgPluginListSchema } from "~/types/repos/wp-dot-org/plugin";
 
@@ -9,7 +9,7 @@ const baseUrl = "http://api.wordpress.org/plugins/info/1.2/";
 
 export async function fetchFromCache(page: number) {
   const cacheFile = Bun.file(
-    `${config.paths.local.cache.responses.dotOrgPlugins}/${page}.json`
+    `${WormholeSyncConfig.paths.local.cache.responses.dotOrgPlugins}/${page}.json`
   );
 
   try {
@@ -70,7 +70,7 @@ async function fetchPluginListPage(perPage: number, page: number) {
     );
 
     const cacheFilePath = path.join(
-      config.paths.local.cache.responses.dotOrgPlugins,
+      WormholeSyncConfig.paths.local.cache.responses.dotOrgPlugins,
       `${page}.json`
     );
     const cacheFile = Bun.file(cacheFilePath);

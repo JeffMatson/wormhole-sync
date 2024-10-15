@@ -1,21 +1,21 @@
 import S3StorageProvider from "./s3";
 import LocalStorageProvider from "./local";
 import B2StorageProvider from "./b2";
-import config from "../config";
+import { WormholeSyncConfig } from "~/config";
 
 function getStorageConfig(storageType: string) {
   switch (storageType) {
     case "s3":
       return {
         type: "s3",
-        endpoint: config.s3.endpoint,
-        region: config.s3.region,
-        bucket: config.s3.bucket,
+        endpoint: WormholeSyncConfig.s3.endpoint,
+        region: WormholeSyncConfig.s3.region,
+        bucket: WormholeSyncConfig.s3.bucket,
       };
     case "local":
       return {
         type: "local",
-        path: config.paths.local.base,
+        path: WormholeSyncConfig.paths.local.base,
       };
     default:
       throw new Error("Invalid storage provider");
@@ -23,7 +23,7 @@ function getStorageConfig(storageType: string) {
 }
 
 export function getStorageProvider() {
-  const providerType = config.storage;
+  const providerType = WormholeSyncConfig.storage;
   const storageConfig = getStorageConfig(providerType);
 
   switch (providerType) {
