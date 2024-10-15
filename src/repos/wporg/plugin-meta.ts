@@ -1,11 +1,7 @@
 import {
   createPlugin,
-  createPluginBanner,
-  createPluginScreenshot,
   createPluginTag,
   createVersion,
-  deletePluginBanner,
-  deletePluginScreenshot,
   deleteVersion,
   disconnectPluginTag,
   getPlugin,
@@ -24,7 +20,14 @@ import type { Prisma, Source } from "@prisma/client";
 import { difference, isEqual } from "es-toolkit";
 import { updateDotOrgPluginStats } from "~/db/plugin-stats";
 import { upsertPluginRequirements } from "~/db/plugin-requirements";
-import { createPluginIcon, deletePluginIcon } from "~/db/plugin-assets";
+import {
+  createPluginBanner,
+  createPluginIcon,
+  createPluginScreenshot,
+  deletePluginBanner,
+  deletePluginIcon,
+  deletePluginScreenshot,
+} from "~/db/plugin-assets";
 
 export async function processPluginMeta(plugin: Plugin) {
   if (!config.syncDb) {
@@ -147,29 +150,27 @@ async function syncBanners(
   const toCreate = difference(newBanners, existingBanners);
   const toDelete = difference(existingBanners, newBanners);
 
-  const updated: Promise<any>[] = [];
+  const updated: any = [];
 
   if (toCreate.length) {
     CLI.log(["info"], "New banners found! Creating banners...");
-    const created = toCreate.map((banner) => {
-      return createPluginBanner(pluginId, banner);
-    });
-
-    updated.push(...created);
+    for (const banner of toCreate) {
+      const created = await createPluginBanner(pluginId, banner);
+      updated.push(created);
+    }
   }
 
   if (toDelete.length) {
     CLI.log(["info"], "Old banners found! Removing banners...");
-    const removed = toDelete.map((banner) => {
+    for (const banner of toDelete) {
       const bannerId = existing?.find((b) => b.slug === banner.slug)?.id;
       if (!bannerId) {
-        return Promise.reject();
+        continue;
       }
 
-      return deletePluginBanner(pluginId, bannerId);
-    });
-
-    updated.push(...removed);
+      const removed = await deletePluginBanner(bannerId);
+      updated.push(removed);
+    }
   }
 
   return updated;
@@ -217,31 +218,28 @@ async function syncScreenshots(
     return !newScreenshots.find((s) => s.slug === screenshot.slug);
   });
 
-  const updated: Promise<any>[] = [];
-
+  const updated: any[] = [];
   if (toCreate.length) {
     CLI.log(["info"], "New screenshots found! Creating screenshots...");
-    const created = toCreate.map((screenshot) => {
-      return createPluginScreenshot(pluginId, screenshot);
-    });
-
-    updated.push(...created);
+    for (const screenshot of toCreate) {
+      const created = await createPluginScreenshot(pluginId, screenshot);
+      updated.push(created);
+    }
   }
 
   if (toDelete.length) {
     CLI.log(["info"], "Old screenshots found! Removing screenshots...");
-    const removed = toDelete.map((screenshot) => {
+    for (const screenshot of toDelete) {
       const screenshotId = existing?.find(
         (s) => s.slug === screenshot.slug
       )?.id;
       if (!screenshotId) {
-        return Promise.reject();
+        continue;
       }
 
-      return deletePluginScreenshot(pluginId, screenshotId);
-    });
-
-    updated.push(...removed);
+      const removed = await deletePluginScreenshot(screenshotId);
+      updated.push(removed);
+    }
   }
 
   return updated;

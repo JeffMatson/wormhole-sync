@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import prismaClient from "./client";
 
 export async function getDownloadLinkInfo(
@@ -33,12 +34,17 @@ export async function getDownloadLinkInfo(
   throw new Error("Invalid props");
 }
 
-export async function upsertLinkInfo(linkInfo: any) {
-  const updatedLink = await prismaClient.downloadLink.upsert({
-    where: { url: linkInfo.url },
-    create: linkInfo,
-    update: linkInfo,
-  });
+export async function upsertLinkInfo(linkInfo: Prisma.DownloadLinkCreateInput) {
+  try {
+    const updatedLink = await prismaClient.downloadLink.upsert({
+      where: { url: linkInfo.url },
+      create: linkInfo,
+      update: linkInfo,
+    });
 
-  return updatedLink;
+    return updatedLink;
+  } catch (error) {
+    console.error(error);
+    return Promise.reject(error);
+  }
 }

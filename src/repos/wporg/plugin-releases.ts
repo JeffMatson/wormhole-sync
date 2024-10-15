@@ -4,10 +4,8 @@ import config from "../../config";
 import CLI from "../../cli";
 import type { Plugin } from "../../types/plugin";
 import { getPluginIdBySlugAndSource } from "~/db/plugin";
-import { getOrCreatePluginVersion } from "~/db/plugin-version";
 import { getDownloadLinkInfo, upsertLinkInfo } from "~/db/download-link";
 import { getFileInfo } from "~/utils";
-import { upsertFileInfo } from "~/db/file-info";
 
 const storageProvider = getStorageProvider();
 

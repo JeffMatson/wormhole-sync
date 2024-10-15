@@ -292,8 +292,33 @@ export async function createVersion(
   const { version, url, source } = props;
 
   try {
-    const created = await prismaClient.pluginVersion.create({
-      data: {
+    const created = await prismaClient.pluginVersion.upsert({
+      where: {
+        pluginId_version: {
+          pluginId,
+          version,
+        },
+      },
+      create: {
+        pluginId,
+        version,
+        downloadLinks: {
+          connectOrCreate: {
+            where: {
+              url,
+              source,
+            },
+            create: {
+              url,
+              source,
+              fileInfo: {
+                create: {},
+              },
+            },
+          },
+        },
+      },
+      update: {
         pluginId,
         version,
         downloadLinks: {
@@ -397,81 +422,6 @@ export async function setPluginTags(
         set: tags.map((tag) => ({
           slug: tag.slug,
         })),
-      },
-    },
-  });
-}
-
-export async function createPluginScreenshot(
-  pluginId: number,
-  screenshot: { slug: string; url: string; source: string; caption?: string }
-) {
-  return prismaClient.plugin.update({
-    where: {
-      id: pluginId,
-    },
-    data: {
-      screenshots: {
-        create: {
-          slug: screenshot.slug,
-          url: screenshot.url,
-          source: screenshot.source as Source,
-          caption: screenshot.caption,
-        },
-      },
-    },
-  });
-}
-
-export async function deletePluginScreenshot(
-  pluginId: number,
-  screenshotId: number
-) {
-  console.log(pluginId, screenshotId);
-  return prismaClient.plugin.update({
-    where: {
-      id: pluginId,
-    },
-    data: {
-      screenshots: {
-        delete: {
-          id: screenshotId,
-        },
-      },
-    },
-  });
-}
-
-export async function createPluginBanner(
-  pluginId: number,
-  banner: { slug: string; url: string; source: string }
-) {
-  return prismaClient.plugin.update({
-    where: {
-      id: pluginId,
-    },
-    data: {
-      banners: {
-        create: {
-          slug: banner.slug,
-          url: banner.url,
-          source: banner.source as Source,
-        },
-      },
-    },
-  });
-}
-
-export async function deletePluginBanner(pluginId: number, bannerId: number) {
-  return prismaClient.plugin.update({
-    where: {
-      id: pluginId,
-    },
-    data: {
-      banners: {
-        delete: {
-          id: bannerId,
-        },
       },
     },
   });
