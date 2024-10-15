@@ -162,8 +162,8 @@ class S3StorageProvider implements StorageProvider {
       );
       return sent;
     } catch (err: S3ServiceException | any) {
-      console.error(err.$metadata);
-      console.error(err.$response);
+      CLI.log(["debug"], err.$metadata);
+      CLI.log(["debug"], err.$response);
       CLI.log(
         ["error"],
         `Failed to upload ${key} to ${WormholeSyncConfig.s3.bucket}`
@@ -197,9 +197,17 @@ class S3StorageProvider implements StorageProvider {
 
       return files;
     } catch (err: any) {
-      console.error("Error: ", err);
+      CLI.log(["error"], err);
       throw err;
     }
+  }
+
+  is404Response(err: any) {
+    return err?.$metadata?.httpStatusCode === 404;
+  }
+
+  is200Response(err: any) {
+    return err?.$metadata?.httpStatusCode === 200;
   }
 
   async fileExists(key: string) {
@@ -211,17 +219,16 @@ class S3StorageProvider implements StorageProvider {
         })
       );
 
-      const responseCode = exists.$metadata.httpStatusCode;
-      if (responseCode === 200) {
+      const success = this.is200Response(exists);
+      if (success) {
         CLI.log(
           ["info"],
           `File ${key} exists in ${WormholeSyncConfig.s3.bucket}`
         );
       }
-
-      return responseCode === 200;
+      return success;
     } catch (err: any) {
-      if (err?.$metadata?.httpStatusCode === 404) {
+      if (this.is404Response(err)) {
         CLI.log(
           ["info"],
           `File ${key} does not exist in ${WormholeSyncConfig.s3.bucket}`
@@ -229,7 +236,7 @@ class S3StorageProvider implements StorageProvider {
         return false;
       }
 
-      console.error("Error: ", err);
+      CLI.log(["debug"], err);
       throw err;
     }
   }
