@@ -13,7 +13,7 @@ class CLIService extends EventEmitter {
     this.emit("start");
   }
 
-  log(levels: string[], message: string) {
+  log(levels: string[], message: any) {
     if (levels.includes("info")) {
       this.emit("logInfo", message);
     }
