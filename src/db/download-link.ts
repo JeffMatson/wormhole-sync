@@ -43,6 +43,10 @@ export async function upsertDownloadLink(
   link: Prisma.DownloadLinkCreateInput,
   fileInfo: Prisma.FileInfoCreateInput = {}
 ) {
+  if (!fileInfo.id) {
+    fileInfo.id = link.id;
+  }
+
   try {
     const updatedLink = await prismaClient.downloadLink.upsert({
       where: { id: link.id },
