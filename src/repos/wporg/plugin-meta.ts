@@ -15,10 +15,7 @@ import CLI from "../../cli";
 import type { Plugin, PluginVersionProps } from "../../types/plugin";
 import type { Prisma, Source } from "@prisma/client";
 import { difference, isEqual } from "es-toolkit";
-import {
-  updateDotOrgPluginStats,
-  upsertDotOrgPluginStats,
-} from "~/db/plugin-stats";
+import { upsertDotOrgPluginStats } from "~/db/plugin-stats";
 import { upsertPluginRequirements } from "~/db/plugin-requirements";
 import {
   createPluginBanner,
