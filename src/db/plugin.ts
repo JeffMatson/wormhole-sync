@@ -47,6 +47,7 @@ export async function getPluginId(args: { slug: string; source: Source }) {
 
       return plugin?.id;
     } catch (error) {
+      CLI.log(["debug"], new Error(`Failed to get plugin ID: ${slug}`));
       throw error;
     }
   }
@@ -64,6 +65,7 @@ export async function getPluginId(args: { slug: string; source: Source }) {
 
       return plugin?.id;
     } catch (error) {
+      CLI.log(["debug"], new Error(`Failed to get plugin ID: ${slug}`));
       throw error;
     }
   }
