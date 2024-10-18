@@ -2,6 +2,7 @@ import { formatISO, isValid, parse } from "date-fns";
 import { isPlainObject, isString } from "es-toolkit";
 import { type Plugin } from "~/types/plugin";
 import type { DotOrgPlugin } from "~/types/repos/wp-dot-org/plugin";
+import { getLinkUuid } from "~/utils";
 
 function transformDotOrgAuthor(plugin: DotOrgPlugin): Plugin["author"] {
   return {
@@ -109,12 +110,23 @@ function transformPluginVersions(plugin: DotOrgPlugin): Plugin["versions"] {
   const { versions } = plugin;
   const transformed: Plugin["versions"] = {};
 
-  if (isPlainObject(versions)) {
-    for (const version in versions) {
-      if (version in versions && isString(version)) {
-        transformed[version] = (versions as Record<string, string>)[version];
-      }
+  if (!isPlainObject(versions) || Array.isArray(versions)) {
+    return transformed;
+  }
+
+  for (const version in versions) {
+    if (!isString(version)) {
+      continue;
     }
+
+    const url = versions[version];
+    transformed[version] = [
+      {
+        id: getLinkUuid(url),
+        url: url,
+        source: "DOTORG",
+      },
+    ];
   }
 
   return transformed;

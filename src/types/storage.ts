@@ -15,7 +15,6 @@ export const StorageConfigSchema = z.union([
     type: z.literal("local"),
   }),
 ]);
-export type StorageConfig = z.infer<typeof StorageConfigSchema>;
 
 export const StorageResourceInfoSchema = z.object({
   source: z.string(),

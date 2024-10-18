@@ -8,6 +8,7 @@ import {
 import type { SupportedCryptoAlgorithms } from "bun";
 import { fileTypeFromBuffer } from "file-type";
 import isSvg from "is-svg";
+import { v5 as uuidv5 } from "uuid";
 
 export async function getImageType(buffer: Uint8Array) {
   const type = await fileTypeFromBuffer(buffer);
@@ -163,4 +164,8 @@ export function allChecksPassed(checkResults: FileChecksPassed) {
   }
 
   return true;
+}
+
+export function getLinkUuid(link: string) {
+  return uuidv5(link, uuidv5.URL);
 }

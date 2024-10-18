@@ -1,12 +1,9 @@
 import {
-  createPlugin,
   createPluginTag,
-  createVersion,
-  deleteVersion,
   disconnectPluginTag,
   getPlugin,
   getPluginId,
-  getVersionIds,
+  syncPluginEssentials,
   updatePluginAuthor,
   updatePluginCurrentVersion,
   updatePluginDescription,
@@ -15,10 +12,13 @@ import {
 } from "../../db/plugin";
 import { WormholeSyncConfig } from "~/config";
 import CLI from "../../cli";
-import type { Plugin } from "../../types/plugin";
+import type { Plugin, PluginVersionProps } from "../../types/plugin";
 import type { Prisma, Source } from "@prisma/client";
 import { difference, isEqual } from "es-toolkit";
-import { updateDotOrgPluginStats } from "~/db/plugin-stats";
+import {
+  updateDotOrgPluginStats,
+  upsertDotOrgPluginStats,
+} from "~/db/plugin-stats";
 import { upsertPluginRequirements } from "~/db/plugin-requirements";
 import {
   createPluginBanner,
@@ -28,6 +28,15 @@ import {
   deletePluginIcon,
   deletePluginScreenshot,
 } from "~/db/plugin-assets";
+import { v5 as uuidv5 } from "uuid";
+import {
+  createPluginVersion,
+  deletePluginVersion,
+  getPluginVersions,
+  updatePluginVersion,
+} from "~/db/plugin-version";
+import type { Uuid } from "~/types/util";
+import { getLinkUuid } from "~/utils";
 
 export async function processPluginMeta(plugin: Plugin) {
   if (!WormholeSyncConfig.syncDb) {
@@ -35,11 +44,14 @@ export async function processPluginMeta(plugin: Plugin) {
     return;
   }
 
-  plugin.id = await getPluginId(plugin.slug, "DOTORG");
+  plugin.id = await getPluginId({ slug: plugin.slug, source: "DOTORG" });
   if (!plugin.id) {
     CLI.log(["info"], `Creating plugin: ${plugin.slug}`);
-    const created = await createPlugin(plugin);
-    return created;
+    const created = await syncPluginEssentials(
+      plugin.slug,
+      plugin.source as Source
+    );
+    plugin.id = created.id;
   }
 
   CLI.log(["info"], `Updating plugin: ${plugin.slug}`);
@@ -85,14 +97,14 @@ async function syncPluginMeta(plugin: Plugin) {
     name: syncName(plugin, existing.name),
     requirements: syncRequirements(plugin, existing.requirements),
     tested: syncTestedVersion(plugin, existing),
-    versions: syncVersions(plugin, existing.versions),
+    versions: syncVersions(plugin),
     description: syncDescriptions(plugin, existing.description),
     tags: syncTags(plugin, existing.tags),
     stats: syncStats(plugin),
     icons: syncIcons(plugin, existing.icons),
     screenshots: syncScreenshots(plugin, existing.screenshots),
     banners: syncBanners(plugin, existing.banners),
-    version: syncCurrentVersion(pluginId, plugin.version),
+    version: syncCurrentVersion(plugin, plugin.version),
   };
 
   return await Promise.all(Object.values(synced));
@@ -138,7 +150,7 @@ async function syncBanners(
     existing?.map((banner) => {
       return {
         slug: banner.slug,
-        source: banner.source as Source,
+        source: banner.source,
         url: banner.url,
       };
     }) || [];
@@ -199,9 +211,9 @@ async function syncScreenshots(
     existing?.map((screenshot) => {
       return {
         slug: screenshot.slug,
-        source: screenshot.source as Source,
+        source: screenshot.source,
         url: screenshot.url,
-        caption: screenshot.caption === null ? undefined : screenshot.caption,
+        caption: screenshot.caption ?? undefined,
       };
     }) || [];
 
@@ -265,7 +277,7 @@ async function syncIcons(
     existing?.map((icon) => {
       return {
         slug: icon.slug,
-        source: icon.source as Source,
+        source: icon.source,
         url: icon.url,
       };
     }) || [];
@@ -313,7 +325,7 @@ async function syncStats(plugin: Plugin) {
   // Since stats are likely to change more often, we'll always update them.
   // Maybe skip in the future if there's a lot of inactive plugins causing unnecessary writes.
   // Just mapping to DB fields for now.
-  const pluginStats = {
+  const stats = {
     added: plugin.stats.dotOrg.added,
     updated: plugin.stats.dotOrg.lastUpdated,
     activeInstalls: plugin.stats.dotOrg.activeInstalls,
@@ -330,7 +342,7 @@ async function syncStats(plugin: Plugin) {
   };
 
   CLI.log(["info"], "Updating stats from WordPress.org...");
-  return updateDotOrgPluginStats(pluginId, pluginStats);
+  return await upsertDotOrgPluginStats(pluginId, stats);
 }
 
 async function syncTags(
@@ -353,24 +365,22 @@ async function syncTags(
   const toCreate = difference(newTags, existingTags);
   const toDelete = difference(existingTags, newTags);
 
-  const updated: Promise<any>[] = [];
+  const updated: any[] = [];
 
   if (toCreate.length) {
     CLI.log(["info"], "New tags found! Creating tags...");
-    const created = toCreate.map((tag) => {
-      return createPluginTag(pluginId, tag);
-    });
-
-    updated.push(...created);
+    for (const tag of toCreate) {
+      const created = await createPluginTag(pluginId, tag);
+      updated.push(created);
+    }
   }
 
   if (toDelete.length) {
     CLI.log(["info"], "Old tags found! Removing tags...");
-    const removed = toDelete.map((tag) => {
-      return disconnectPluginTag(pluginId, tag.slug);
-    });
-
-    updated.push(...removed);
+    for (const tag of toDelete) {
+      const removed = await disconnectPluginTag(pluginId, tag.slug);
+      updated.push(removed);
+    }
   }
 
   return updated;
@@ -398,66 +408,175 @@ async function syncDescriptions(
   return null;
 }
 
-async function syncVersions(
-  plugin: Plugin,
-  existingVersions:
-    | Prisma.PluginVersionGetPayload<Prisma.PluginVersionDefaultArgs>[]
-    | null
+async function getExistingVersions(pluginId: Uuid) {
+  try {
+    const found = await getPluginVersions(pluginId, {
+      include: {
+        downloadLinks: {
+          where: {
+            source: "DOTORG",
+          },
+        },
+      },
+    });
+
+    const parsed: Record<string, PluginVersionProps> = {};
+    for (const version of found) {
+      if (!version.downloadLinks?.length) {
+        continue;
+      }
+
+      for (const link of version.downloadLinks) {
+        parsed[version.version] = {
+          url: link.url,
+          source: link.source,
+          id: link.id ? link.id : undefined,
+        };
+      }
+    }
+
+    return parsed;
+  } catch (error) {
+    CLI.log(["debug"], error);
+    return {};
+  }
+}
+
+function getIncomingVersions(plugin: Plugin) {
+  const incoming: Record<string, Required<PluginVersionProps>> = {};
+  for (const version in plugin.versions) {
+    const sources = plugin.versions[version];
+    for (const source of sources) {
+      incoming[version] = {
+        ...source,
+        id: source.id ?? uuidv5(source.url, uuidv5.URL),
+      };
+    }
+  }
+
+  return incoming;
+}
+
+function diffVersions(
+  existing: Record<string, PluginVersionProps>,
+  incoming: Record<string, Required<PluginVersionProps>>
 ) {
+  const toCreate: Record<string, PluginVersionProps> = {};
+  const toDelete: Record<string, PluginVersionProps> = {};
+  const toUpdate: Record<string, PluginVersionProps> = {};
+
+  for (const version in incoming) {
+    if (!existing[version]) {
+      toCreate[version] = incoming[version];
+    }
+  }
+
+  for (const version in existing) {
+    if (!incoming[version]) {
+      toDelete[version] = existing[version];
+    }
+  }
+
+  for (const version in incoming) {
+    if (existing[version]) {
+      const existingVersion = existing[version];
+      const incomingVersion = incoming[version];
+
+      for (const key of [
+        "url",
+        "source",
+        "uuid",
+      ] as (keyof PluginVersionProps)[]) {
+        if (existingVersion[key] !== incomingVersion[key]) {
+          toUpdate[version] = incomingVersion;
+        }
+      }
+    }
+  }
+
+  return { toCreate, toDelete, toUpdate };
+}
+
+async function syncVersions(plugin: Plugin) {
   const pluginId = plugin.id;
   if (!pluginId) {
     throw new Error("Plugin ID is required to sync versions");
   }
 
-  const updated: Promise<any>[] = [];
+  const existing = await getExistingVersions(pluginId);
+  const incoming = getIncomingVersions(plugin);
 
-  const existingVersionNames = existingVersions
-    ? existingVersions.map((v) => v.version)
-    : [];
-  const newVersionNames = Object.keys(plugin.versions);
+  const { toCreate, toDelete, toUpdate } = diffVersions(existing, incoming);
 
-  const toCreate = difference(newVersionNames, existingVersionNames);
-  const toDelete = difference(existingVersionNames, newVersionNames);
-
-  if (!toCreate.length && !toDelete.length) {
+  if (
+    !Object.keys(toCreate).length &&
+    !Object.keys(toDelete).length &&
+    !Object.keys(toUpdate).length
+  ) {
     CLI.log(["info"], "Versions are already in sync! Skipping...");
     return null;
   }
 
-  // Create new versions
-  if (toCreate.length) {
-    CLI.log(["info"], `New versions found! Creating versions...`);
+  const synced: any[] = [];
 
-    const newVersions = toCreate.map(async (version) => {
-      const created = await createVersion(pluginId, {
-        version,
-        url: plugin.versions[version],
-        source: plugin.source,
+  // Create new versions
+  if (Object.keys(toCreate).length) {
+    CLI.log(["info"], `New versions found! Creating versions...`);
+    for (const version in toCreate) {
+      const created = await createPluginVersion(pluginId, version, {
+        downloadLinks: [
+          {
+            source: toCreate[version].source,
+            url: toCreate[version].url,
+            id: toCreate[version].id ?? getLinkUuid(toCreate[version].url),
+          },
+        ],
       });
 
-      return created;
-    });
-
-    updated.push(...newVersions);
+      synced.push(created);
+    }
   }
 
   // Delete old versions if unpublished.
-  if (toDelete.length) {
+  if (Object.keys(toDelete).length) {
     CLI.log(["info"], `Old versions found! Removing versions...`);
-
-    const versionIdsToDelete = await getVersionIds(pluginId, toDelete);
-    const removed = versionIdsToDelete.map((version) => {
-      return deleteVersion(version);
-    });
-
-    updated.push(...removed);
+    for (const version in toDelete) {
+      const deleted = await deletePluginVersion({
+        pluginId: pluginId,
+        version: version,
+      });
+      synced.push(deleted);
+    }
   }
 
-  return updated;
+  // Update existing versions.
+  if (Object.keys(toUpdate).length) {
+    CLI.log(["info"], `Version changes detected! Updating versions...`);
+    for (const version in toUpdate) {
+      const updated = await updatePluginVersion(
+        { pluginId, version },
+        {
+          downloadLinks: {
+            connect: {
+              id: toUpdate[version].id,
+            },
+          },
+        }
+      );
+
+      synced.push(updated);
+    }
+  }
+
+  return synced;
 }
 
-async function syncCurrentVersion(pluginId: number, version: string) {
-  return updatePluginCurrentVersion(pluginId, version);
+async function syncCurrentVersion(plugin: Plugin, version: string) {
+  if (!plugin.id) {
+    throw new Error("Plugin ID is required to sync current version");
+  }
+
+  return updatePluginCurrentVersion(plugin.id, version);
 }
 
 async function syncTestedVersion(

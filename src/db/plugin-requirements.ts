@@ -1,8 +1,9 @@
 import type { Plugin } from "~/types/plugin";
 import prismaClient from "./client";
+import type { Uuid } from "~/types/util";
 
 export async function upsertPluginRequirements(
-  pluginId: number,
+  pluginId: Uuid,
   requirements: Plugin["requirements"]
 ) {
   try {

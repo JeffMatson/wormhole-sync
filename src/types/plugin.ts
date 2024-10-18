@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { PositiveNumberSchema, SlugSchema, VersionStringSchema } from "./util";
+import {
+  PositiveNumberSchema,
+  SlugSchema,
+  UuidSchema,
+  VersionStringSchema,
+} from "./util";
 
 const DotOrgPluginNameSchema = z.string();
 
@@ -65,7 +70,7 @@ const PluginAuthorSchema = z.object({
   }),
 });
 
-const PluginSourceSchema = z.enum(["DOTORG", "GITHUB"]);
+const PluginSourceSchema = z.enum(["DOTORG", "GITHUB", "CUSTOM", "UNKNOWN"]);
 
 const PluginIconSchema = z.object({
   slug: SlugSchema,
@@ -104,10 +109,20 @@ const PluginTagsSchema = z.array(
   z.object({ slug: SlugSchema, name: z.string() })
 );
 
-const PluginVersionsSchema = z.record(VersionStringSchema, z.string().url());
+const PluginVersionPropsSchema = z.object({
+  id: UuidSchema.optional(),
+  url: z.string().url(),
+  source: PluginSourceSchema,
+});
+export type PluginVersionProps = z.infer<typeof PluginVersionPropsSchema>;
+
+const PluginVersionsSchema = z.record(
+  VersionStringSchema,
+  z.array(PluginVersionPropsSchema)
+);
 
 export const PluginSchema = z.object({
-  id: z.number().optional(),
+  id: UuidSchema.optional(),
   source: PluginSourceSchema,
   name: DotOrgPluginNameSchema,
   slug: SlugSchema,
@@ -128,4 +143,3 @@ export const PluginSchema = z.object({
 export type Plugin = z.infer<typeof PluginSchema>;
 
 export const PluginListSchema = z.array(PluginSchema);
-export type PluginList = z.infer<typeof PluginListSchema>;

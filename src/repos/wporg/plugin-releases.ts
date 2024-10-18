@@ -3,9 +3,7 @@ import { DownloadQueue, FileQueue } from "../../queues";
 import { WormholeSyncConfig } from "~/config";
 import CLI from "../../cli";
 import type { Plugin } from "../../types/plugin";
-import { getPluginIdBySlugAndSource } from "~/db/plugin";
-import { getDownloadLinkInfo, upsertLinkInfo } from "~/db/download-link";
-import { getFileInfo } from "~/utils";
+import { getPluginId } from "~/db/plugin";
 
 const storageProvider = getStorageProvider();
 
@@ -30,7 +28,14 @@ function getDownloadLink(plugin: Plugin, version: string) {
     throw new Error("Unknown version");
   }
 
-  return plugin.versions[version];
+  const linked = plugin.versions[version].find(
+    (link) => link.source === "DOTORG" && link.url
+  );
+  if (linked) {
+    return linked.url;
+  }
+
+  throw new Error("Download link not found");
 }
 
 async function downloadRelease(plugin: Plugin, version: string) {
@@ -48,34 +53,34 @@ async function downloadRelease(plugin: Plugin, version: string) {
   return downloaded;
 }
 
-export async function syncLinkInfo(payload: Uint8Array, downloadLink: string) {
-  const existingLinkInfo = await getDownloadLinkInfo(
-    { url: downloadLink },
-    { fileInfo: true }
-  );
+// export async function syncLinkInfo(payload: Uint8Array, downloadLink: string) {
+//   const existingLinkInfo = await getDownloadLinkInfo(
+//     { url: downloadLink },
+//     { fileInfo: true }
+//   );
 
-  const toSync = {
-    ext: true,
-    mime: true,
-    size: true,
-    sha1: true,
-    sha256: true,
-    md5: true,
-  };
+//   const toSync = {
+//     ext: true,
+//     mime: true,
+//     size: true,
+//     sha1: true,
+//     sha256: true,
+//     md5: true,
+//   };
 
-  const payloadInfo = await getFileInfo(payload, toSync);
+//   const payloadInfo = await getFileInfo(payload, toSync);
 
-  const result = await upsertLinkInfo({
-    url: downloadLink,
-    fileInfo: {
-      create: {
-        ...payloadInfo,
-      },
-    },
-  });
+//   const result = await upsertLinkInfo({
+//     url: downloadLink,
+//     fileInfo: {
+//       create: {
+//         ...payloadInfo,
+//       },
+//     },
+//   });
 
-  return result;
-}
+//   return result;
+// }
 
 export async function processRelease(plugin: Plugin, version: string) {
   if (!WormholeSyncConfig.syncFiles) {
@@ -84,7 +89,7 @@ export async function processRelease(plugin: Plugin, version: string) {
   }
 
   if (!plugin.id) {
-    const pluginId = await getPluginIdBySlugAndSource(plugin.slug, "DOTORG");
+    const pluginId = await getPluginId({ slug: plugin.slug, source: "DOTORG" });
     if (!pluginId) {
       throw new Error("Plugin not found in database");
     }

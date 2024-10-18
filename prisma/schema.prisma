@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearch", "typedSql"]
 }
 
 datasource db {
@@ -16,12 +17,12 @@ enum Source {
 }
 
 model Plugin {
-  id                     Int                 @id @default(autoincrement())
-  source                 Source              @default(UNKNOWN)
-  slug                   String              
+  id                     String               @id @unique @default(uuid())
+  source                 Source               @default(UNKNOWN)
+  slug                   String
   name                   String?
   author                 Author?              @relation(fields: [authorId], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  authorId               Int?
+  authorId               String?
   authorProfile          String?
   tested                 String?
   requirements           PluginRequirements?
@@ -29,7 +30,7 @@ model Plugin {
   description            PluginDescription?
   tags                   Tag[]
   donateLink             String?
-  version                String?       
+  version                String?
   versions               PluginVersion[]
   icons                  PluginIcon[]
   banners                PluginBanner[]
@@ -40,8 +41,8 @@ model Plugin {
 }
 
 model PluginRequirements {
-  id          Int      @id @default(autoincrement())
-  pluginId    Int      @unique
+  id          String   @id @unique @default(uuid())
+  pluginId    String   @unique
   plugin      Plugin   @relation(fields: [pluginId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   pluginSlugs String[]
   phpVersion  String?
@@ -49,17 +50,16 @@ model PluginRequirements {
 }
 
 model PluginDescription {
-  id          Int      @id @default(autoincrement())
-  pluginId    Int      @unique
+  id          String   @id @unique @default(uuid())
+  pluginId    String   @unique
   plugin      Plugin   @relation(fields: [pluginId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   full        String?
   short       String?
 }
 
 model DotOrgPluginStats {
-  id                     Int       @id @default(autoincrement())
-  pluginId               Int       @unique
-  plugin                 Plugin    @relation(fields: [pluginId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  id                     String    @id @unique
+  plugin                 Plugin    @relation(fields: [id], references: [id], onDelete: Cascade, onUpdate: Cascade)
   added                  DateTime? @default(now())
   updated                DateTime?
   activeInstalls         Int?
@@ -76,7 +76,7 @@ model DotOrgPluginStats {
 }
 
 model Author {
-  id               Int      @id @default(autoincrement())
+  id               String    @id @unique @default(uuid())
   name             String
   plugins          Plugin[]
   dotOrgProfileUrl String?  @unique
@@ -89,11 +89,11 @@ model Tag {
 }
 
 model PluginVersion {
-  id              Int            @id @default(autoincrement())
+  id              String         @id @unique @default(uuid())
   version         String
-  pluginId        Int
+  pluginId        String
   plugin          Plugin         @relation(fields: [pluginId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  downloadLinkIds Int[]          @unique
+  downloadLinkIds String[]       @unique
   downloadLinks   DownloadLink[]
   added           DateTime?      @default(now())
   updatedAt       DateTime       @updatedAt @default(now())
@@ -102,18 +102,17 @@ model PluginVersion {
 }
 
 model DownloadLink {
-  id              Int           @id @default(autoincrement())
-  source          Source        @default(UNKNOWN)
-  url             String        @unique
-  fileId          Int?          @unique
-  fileInfo        FileInfo?     @relation(fields: [fileId], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  pluginVersionId Int?
+  id              String         @id @unique
+  source          Source         @default(UNKNOWN)
+  url             String         @unique
+  fileId          Int?           @unique
+  fileInfo        FileInfo?
+  pluginVersionId String?
   pluginVersion   PluginVersion? @relation(fields: [pluginVersionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 }
 
 model FileInfo {
-  id        Int    @id @default(autoincrement())
-  sourceUrl DownloadLink?
+  id        String        @id @unique @default(uuid())
   name      String?
   size      Int?
   md5       String?
@@ -123,32 +122,34 @@ model FileInfo {
   mime      String?
   ext       String?
   path      String?
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime      @updatedAt @default(now())
+  linkId    String?       @unique
+  sourceUrl DownloadLink? @relation(fields: [linkId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 }
 
 model PluginIcon {
-  id       Int    @id @default(autoincrement())
-  pluginId Int    
-  plugin   Plugin @relation(fields: [pluginId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  source   Source @default(UNKNOWN)
+  id       String  @id @unique @default(uuid())
+  pluginId String
+  plugin   Plugin  @relation(fields: [pluginId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  source   Source  @default(UNKNOWN)
   slug     String
   url      String
 }
 
 model PluginBanner {
-  id       Int    @id @default(autoincrement())
-  pluginId Int    
-  plugin   Plugin @relation(fields: [pluginId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  source   Source @default(UNKNOWN)
+  id       String  @id @unique @default(uuid())
+  pluginId String
+  plugin   Plugin  @relation(fields: [pluginId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  source   Source  @default(UNKNOWN)
   slug     String
   url      String
 }
 
 model PluginScreenshot {
-  id       Int    @id @default(autoincrement())
-  pluginId Int    
-  plugin   Plugin @relation(fields: [pluginId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  source   Source @default(UNKNOWN)
+  id       String  @id @unique @default(uuid())
+  pluginId String
+  plugin   Plugin  @relation(fields: [pluginId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  source   Source  @default(UNKNOWN)
   url      String
   caption  String?
   slug     String

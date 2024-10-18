@@ -1,4 +1,4 @@
-export interface Queue {
+interface Queue {
   total: number;
   active: number;
   pending: number;

@@ -1,11 +1,10 @@
-import { Prisma, type Source } from "@prisma/client";
+import { type Source } from "@prisma/client";
 import prismaClient from "./client";
 import { isPrismaError } from "~/utils/db";
-
-export async function createPluginAssets() {}
+import type { Uuid } from "~/types/util";
 
 export async function createPluginIcon(
-  pluginId: number,
+  pluginId: Uuid,
   icon: { slug: string; url: string; source: string }
 ) {
   try {
@@ -25,7 +24,7 @@ export async function createPluginIcon(
   }
 }
 
-export async function deletePluginIcon(iconId: number) {
+export async function deletePluginIcon(iconId: Uuid) {
   try {
     const result = await prismaClient.pluginIcon.delete({
       where: {
@@ -45,7 +44,7 @@ export async function deletePluginIcon(iconId: number) {
 }
 
 export async function createPluginBanner(
-  pluginId: number,
+  pluginId: Uuid,
   banner: { slug: string; url: string; source: string }
 ) {
   try {
@@ -64,7 +63,7 @@ export async function createPluginBanner(
   }
 }
 
-export async function deletePluginBanner(bannerId: number) {
+export async function deletePluginBanner(bannerId: Uuid) {
   try {
     const result = await prismaClient.pluginBanner.delete({
       where: {
@@ -84,7 +83,7 @@ export async function deletePluginBanner(bannerId: number) {
 }
 
 export async function createPluginScreenshot(
-  pluginId: number,
+  pluginId: Uuid,
   screenshot: { slug: string; url: string; source: string; caption?: string }
 ) {
   try {
@@ -104,7 +103,7 @@ export async function createPluginScreenshot(
   }
 }
 
-export async function deletePluginScreenshot(screenshotId: number) {
+export async function deletePluginScreenshot(screenshotId: Uuid) {
   try {
     const result = await prismaClient.pluginScreenshot.delete({
       where: {

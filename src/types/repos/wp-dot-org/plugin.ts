@@ -85,4 +85,3 @@ export const DotOrgPluginSchema = z.object({
 export type DotOrgPlugin = z.infer<typeof DotOrgPluginSchema>;
 
 export const DotOrgPluginListSchema = z.array(DotOrgPluginSchema);
-export type DotOrgPluginList = z.infer<typeof DotOrgPluginListSchema>;

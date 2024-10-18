@@ -129,7 +129,7 @@ export async function fetchPluginList() {
   const allPlugins = [];
 
   for (const page of allPages) {
-    if (page && page.plugins) {
+    if (page?.plugins) {
       allPlugins.push(...page.plugins);
     }
   }

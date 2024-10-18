@@ -11,7 +11,6 @@ export const LocalPathConfigSchema = z.object({
     }),
   }),
 });
-export type LocalPathConfig = z.infer<typeof LocalPathConfigSchema>;
 
 export const ConfigSchema = z.object({
   syncDb: z.boolean(),
@@ -44,9 +43,3 @@ export const ConfigSchema = z.object({
   }),
 });
 export type Config = z.infer<typeof ConfigSchema>;
-
-const EnvConfigSchema = ConfigSchema.deepPartial();
-export type EnvConfig = z.infer<typeof EnvConfigSchema>;
-
-const CLIConfigSchema = ConfigSchema.deepPartial();
-export type CLIConfig = z.infer<typeof CLIConfigSchema>;

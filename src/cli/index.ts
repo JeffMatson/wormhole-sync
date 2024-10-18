@@ -1,10 +1,10 @@
 import CLIService from "./service";
-import { dotOrgPluginFetchProgressBar, queueProgressBar } from "./progress-bar";
+// import { dotOrgPluginFetchProgressBar, queueProgressBar } from "./progress-bar";
 import type { SingleBar } from "cli-progress";
 import { WormholeSyncConfig } from "~/config";
-import chalk from "chalk";
-import type { QueueUpdate } from "./types";
-import { getQueueTitle } from "./utils";
+// import chalk from "chalk";
+// import type { QueueUpdate } from "./types";
+// import { getQueueTitle } from "./utils";
 import { consola } from "consola";
 
 const bars: Record<string, SingleBar> = {};

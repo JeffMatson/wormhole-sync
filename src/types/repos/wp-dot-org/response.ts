@@ -12,4 +12,3 @@ export const PluginsApiResponseSchema = z.object({
   info: RequestInfoSchema,
   plugins: z.array(DotOrgPluginSchema),
 });
-export type PluginsApiResponse = z.infer<typeof PluginsApiResponseSchema>;
